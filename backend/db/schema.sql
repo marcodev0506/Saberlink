@@ -15,8 +15,10 @@ CREATE TABLE IF NOT EXISTS usuarios (
   password_hash TEXT NOT NULL,
   nombre        TEXT NOT NULL,
   rol           TEXT NOT NULL CHECK (rol IN ('rrhh', 'experto', 'trabajador')),
+  debe_cambiar_password BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN NOT NULL DEFAULT false;
 
 -- Árbol organizacional genérico: cada empresa define sus propios tipos y niveles
 CREATE TABLE IF NOT EXISTS unidades (

@@ -11,6 +11,22 @@ const rol = ref('trabajador');
 const error = ref('');
 const ok = ref('');
 const loading = ref(false);
+const importMsg = ref('');
+
+async function importar(ev) {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const buf = await f.arrayBuffer();
+  const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+  error.value = ''; importMsg.value = '';
+  try {
+    const r = await post('/api/usuarios/importar', { archivo_base64: b64, archivo_nombre: f.name });
+    importMsg.value = `${r.creados} usuarios creados${r.omitidos ? `, ${r.omitidos} ya existían` : ''}${r.errores.length ? `, ${r.errores.length} errores` : ''} — contraseña inicial: ${r.password_default}`;
+    if (r.errores.length) importMsg.value += ` (${r.errores.join('; ')})`;
+    await cargar();
+  } catch (err) { error.value = err.message; }
+  ev.target.value = '';
+}
 
 async function cargar() {
   const data = await get('/api/usuarios');
@@ -42,7 +58,7 @@ onMounted(cargar);
     <h1>Usuarios de la empresa</h1>
 
     <section class="card">
-      <h2>Invitar usuario</h2>
+      <h2>Registrar usuario</h2>
       <form @submit.prevent="invitar" class="grid">
         <label>Nombre <input v-model="nombre" required /></label>
         <label>Correo <input v-model="email" type="email" required /></label>
@@ -58,6 +74,13 @@ onMounted(cargar);
       </form>
       <p v-if="error" class="error">{{ error }}</p>
       <p v-if="ok" class="ok">{{ ok }}</p>
+    </section>
+
+    <section class="card">
+      <h2>Importar desde Excel</h2>
+      <p class="hint">Sube la <a href="/plantilla_usuarios.xlsx" download>📄 plantilla</a> con columnas <b>nombre</b>, <b>correo</b> y <b>rol</b> (trabajador / experto / rrhh). Todos entran con contraseña <b>Saberlink123</b> y la cambian al primer inicio de sesión.</p>
+      <input type="file" accept=".xlsx,.xls,.csv" @change="importar" />
+      <p v-if="importMsg" class="ok">{{ importMsg }}</p>
     </section>
 
     <section class="card">
@@ -93,4 +116,5 @@ td { padding: .55rem .5rem; border-top: 1px solid var(--cream); }
 .chip[data-rol='experto'] { background: #fdeee3; color: var(--orange); }
 .chip[data-rol='trabajador'] { background: #dde6f0; color: var(--navy); }
 .error { color: var(--danger); } .ok { color: var(--navy); }
+.hint { font-size: .85rem; color: #374151; }
 </style>

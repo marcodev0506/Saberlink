@@ -17,7 +17,7 @@ async function submit() {
     const data = await post('/api/auth/login', { email: email.value, password: password.value });
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
-    router.push('/inicio');
+    router.push(data.user.debe_cambiar_password ? '/cambiar-password' : '/inicio');
   } catch (err) {
     error.value = err.message;
   } finally {
