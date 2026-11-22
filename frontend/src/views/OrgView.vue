@@ -1,181 +1,103 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
+import { get, post, put, del } from '../api.js';
 import AppLayout from '../components/AppLayout.vue';
+import OrgCard from '../components/OrgCard.vue';
 import TagSelect from '../components/TagSelect.vue';
-import { get, post, put, del } from '../api';
-
-const user = JSON.parse(localStorage.getItem('user') || '{}');
-const esRrhh = user.rol === 'rrhh';
 
 const arbol = ref([]);
 const error = ref('');
-const chatTxt = ref('');
-const chatLoading = ref(false);
-const chatMsg = ref('');
+const modal = ref(null);        // { mode: 'card'|'perfil'|'confirm', padre?, node? }
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+const esRrhh = user.rol === 'rrhh';
+const colapsados = ref(new Set());
 
-const NODE_W = 230, NODE_H = 100, GAP_X = 40, GAP_Y = 150;
+const f = ref({ cargo: '', nombre_apellido: '', ci: '', correo: '' });
+const p = ref({ descripcion: '', competencias: [], habilidades: [] });
+const tipoDraft = ref('unidad');
 
-// viewport: pan + zoom
-const vp = reactive({ x: 60, y: 40, zoom: 0.85 });
-function zoomBy(d) { vp.zoom = Math.min(1.6, Math.max(0.3, vp.zoom + d)); }
-function centrar() { vp.x = 60; vp.y = 40; vp.zoom = 0.85; }
-
-const viewport = ref(null);
-let pan = null;
-function panStart(e) {
-  if (dragNodo) return;
-  pan = { sx: e.clientX, sy: e.clientY, x: vp.x, y: vp.y };
-}
-function panMove(e) {
-  nodoMove(e);
-  if (!pan) return;
-  vp.x = pan.x + e.clientX - pan.sx;
-  vp.y = pan.y + e.clientY - pan.sy;
-}
-function panEnd() { nodoUp(); pan = null; }
-
-// nodos planos con posición (metadata.x/y o layout automático)
-const nodos = ref([]);      // [{id, nombre, tipo, cargo, ..., hijos:[id], padre, x, y}]
-const sel = ref(null);      // nodo seleccionado
-
-function aplanar(lista, padre = null, out = []) {
-  for (const n of lista) {
-    const flat = { ...n, padre, hijos: (n.hijos ?? []).map((h) => h.id) };
-    out.push(flat);
-    aplanar(n.hijos ?? [], n.id, out);
-  }
-  return out;
-}
-
-function autoLayout(lista) {
-  // anchura de cada subárbol = hojas * (NODE_W + GAP_X)
-  let cursor = 0;
-  function ancho(n) {
-    const hijos = lista.filter((x) => x.padre === n.id);
-    n._w = hijos.length ? hijos.reduce((s, h) => s + ancho(h), 0) : NODE_W + GAP_X;
-    return n._w;
-  }
-  function colocar(n, x, y) {
-    const hijos = lista.filter((x) => x.padre === n.id);
-    n.x = x + (n._w - NODE_W - GAP_X) / 2;
-    n.y = y;
-    let hx = x;
-    for (const h of hijos) { colocar(h, hx, y + NODE_H + GAP_Y); hx += h._w; }
-  }
-  const raices = lista.filter((n) => !n.padre);
-  for (const r of raices) { ancho(r); colocar(r, cursor, 0); cursor += r._w; }
-}
+function fmtCi(e) { f.value.ci = 'V-' + e.target.value.replace(/[^0-9]/g, ''); }
 
 async function cargar() {
   const data = await get('/api/unidades');
-  const flat = aplanar(data.unidades);
-  // nodos sin posición guardada -> layout automático solo para ellos
-  const sinPos = flat.filter((n) => n.metadata?.x == null);
-  if (sinPos.length) autoLayout(sinPos);
-  for (const n of flat) {
-    n.x = n.metadata?.x ?? n.x ?? 0;
-    n.y = n.metadata?.y ?? n.y ?? 0;
-  }
-  nodos.value = flat;
-  if (sel.value) sel.value = flat.find((n) => n.id === sel.value.id) ?? null;
+  arbol.value = data.unidades;
 }
 
-async function enviarChat() {
-  if (!chatTxt.value.trim()) return;
-  chatLoading.value = true; chatMsg.value = '';
-  try {
-    await post('/api/unidades/chat', { texto: chatTxt.value });
-    chatTxt.value = ''; chatMsg.value = 'Estructura creada ✔';
-    await cargar();
-  } catch (e) { chatMsg.value = e.message; }
-  chatLoading.value = false;
+function toggle(id) {
+  const s = new Set(colapsados.value);
+  s.has(id) ? s.delete(id) : s.add(id);
+  colapsados.value = s;
 }
 
-// arrastrar un nodo (guarda posición en metadata)
-let dragNodo = null;
-function nodoDown(e, n) {
-  if (!esRrhh) return;
-  dragNodo = { n, ox: n.x, oy: n.y, sx: e.clientX, sy: e.clientY, mov: false };
-  e.stopPropagation();
-}
-function nodoMove(e) {
-  if (!dragNodo) return;
-  const dx = (e.clientX - dragNodo.sx) / vp.zoom;
-  const dy = (e.clientY - dragNodo.sy) / vp.zoom;
-  if (Math.abs(dx) + Math.abs(dy) > 4) dragNodo.mov = true;
-  dragNodo.n.x = dragNodo.ox + dx;
-  dragNodo.n.y = dragNodo.oy + dy;
-}
-function nodoUp() {
-  if (!dragNodo) return;
-  if (dragNodo.mov) {
-    const n = dragNodo.n;
-    put(`/api/unidades/${n.id}`, { metadata: { ...(n.metadata ?? {}), x: Math.round(n.x), y: Math.round(n.y) } })
-      .catch((e) => (error.value = e.message));
-  } else {
-    seleccionar(dragNodo.n);
-  }
-  dragNodo = null;
+function abrirCard(padre = null, node = null) {
+  modal.value = { mode: 'card', padre, node };
+  f.value = node
+    ? { cargo: node.cargo || node.nombre, nombre_apellido: node.nombre_apellido, ci: node.ci, correo: node.correo }
+    : { cargo: '', nombre_apellido: '', ci: '', correo: '' };
+  tipoDraft.value = node?.tipo || 'unidad';
 }
 
-const insp = reactive({ cargo: '', nombre_apellido: '', ci: '', correo: '', tipo: 'unidad', descripcion: '', competencias: [], habilidades: [] });
-function seleccionar(n) {
-  sel.value = n;
-  insp.cargo = n.cargo || n.nombre;
-  insp.nombre_apellido = n.nombre_apellido ?? '';
-  insp.ci = n.ci ?? '';
-  insp.correo = n.correo ?? '';
-  insp.tipo = n.tipo ?? 'unidad';
-  insp.descripcion = n.descripcion ?? '';
-  insp.competencias = [...(n.competencias ?? [])];
-  insp.habilidades = [...(n.habilidades ?? [])];
+function abrirPerfil(node) {
+  modal.value = { mode: 'perfil', node };
+  p.value = {
+    descripcion: node.descripcion || '',
+    competencias: [...(node.competencias || [])],
+    habilidades: [...(node.habilidades || [])],
+  };
 }
-const seleccionado = computed(() => sel.value);
-function fmtCi(e) { insp.ci = 'V-' + e.target.value.replace(/[^0-9]/g, ''); }
 
-async function guardarInsp() {
-  if (!sel.value) return;
+async function guardar() {
   error.value = '';
   try {
-    await put(`/api/unidades/${sel.value.id}`, {
-      nombre: insp.cargo.trim(), cargo: insp.cargo.trim(), tipo: insp.tipo,
-      nombre_apellido: insp.nombre_apellido, ci: insp.ci, correo: insp.correo,
-      descripcion: insp.descripcion, competencias: insp.competencias, habilidades: insp.habilidades,
-    });
+    if (modal.value.mode === 'card') {
+      const payload = {
+        nombre: f.value.cargo.trim(),
+        cargo: f.value.cargo.trim(),
+        tipo: tipoDraft.value,
+        nombre_apellido: f.value.nombre_apellido,
+        ci: f.value.ci,
+        correo: f.value.correo,
+      };
+      if (modal.value.node) {
+        await put(`/api/unidades/${modal.value.node.id}`, payload);
+      } else {
+        await post('/api/unidades', { ...payload, parent_id: modal.value.padre?.id ?? null });
+      }
+    } else {
+      await put(`/api/unidades/${modal.value.node.id}`, {
+        descripcion: p.value.descripcion,
+        competencias: p.value.competencias,
+        habilidades: p.value.habilidades,
+      });
+    }
+    modal.value = null;
     await cargar();
-  } catch (e) { error.value = e.message; }
+  } catch (err) { error.value = err.message; }
 }
 
-async function nuevoHijo() {
-  if (!sel.value) return;
+function borrar(node) { modal.value = { mode: 'confirm', node }; }
+
+async function confirmarBorrar() {
   try {
-    await post('/api/unidades', { nombre: 'Nuevo cargo', cargo: 'Nuevo cargo', tipo: 'unidad', parent_id: sel.value.id });
+    await del(`/api/unidades/${modal.value.node.id}`);
+    modal.value = null;
     await cargar();
-  } catch (e) { error.value = e.message; }
+  } catch (err) { error.value = err.message; }
 }
 
-async function nuevoRaiz() {
-  try {
-    await post('/api/unidades', { nombre: 'Nueva gerencia', cargo: 'Nueva gerencia', tipo: 'gerencia' });
-    await cargar();
-  } catch (e) { error.value = e.message; }
+// drag & drop: soltar una tarjeta sobre otra la anida como hija
+const dragId = ref(null);
+function onDrop(target) {
+  const id = dragId.value;
+  dragId.value = null;
+  if (!id || id === target.id) return;
+  const esDesc = (n) => n.id === id || (n.hijos ?? []).some(esDesc);
+  if (esDesc(target)) return;
+  put(`/api/unidades/${id}`, { parent_id: target.id })
+    .then(cargar)
+    .catch((e) => (error.value = e.message));
 }
-
-async function borrarSel() {
-  if (!sel.value) return;
-  try {
-    await del(`/api/unidades/${sel.value.id}`);
-    sel.value = null;
-    await cargar();
-  } catch (e) { error.value = e.message; }
-}
-
-const edges = computed(() =>
-  nodos.value.filter((n) => n.padre).map((n) => {
-    const p = nodos.value.find((x) => x.id === n.padre);
-    return p ? { x1: p.x + NODE_W / 2, y1: p.y + NODE_H, x2: n.x + NODE_W / 2, y2: n.y } : null;
-  }).filter(Boolean)
-);
+function onDragstart(id) { dragId.value = id; }
 
 onMounted(cargar);
 </script>
@@ -185,101 +107,76 @@ onMounted(cargar);
     <header class="top">
       <div>
         <h1>Estructura organizacional</h1>
-        <p class="sub">Arrastra el fondo para moverte, arrastra tarjetas para posicionarlas, click en una tarjeta para editarla.</p>
+        <p class="sub">Arrastra una tarjeta sobre otra para anidarla. ⊕ agrega una sub-unidad y + define descripción, competencias y habilidades.</p>
       </div>
-      <button v-if="esRrhh" class="primary" @click="nuevoRaiz">Agregar</button>
+      <button v-if="esRrhh" class="primary" @click="abrirCard()">Agregar</button>
     </header>
-
-    <section v-if="esRrhh" class="chat">
-      <textarea v-model="chatTxt" rows="2" @keydown.ctrl.enter.prevent="enviarChat"
-        placeholder="Describe la estructura en lenguaje natural, ej: una gerencia con 2 líderes y cada líder 3 analistas" />
-      <button class="primary" :disabled="chatLoading" @click="enviarChat">{{ chatLoading ? 'Generando…' : '➤ Crear' }}</button>
-      <p v-if="chatMsg" class="chatmsg">{{ chatMsg }}</p>
-    </section>
     <p v-if="error" class="error">{{ error }}</p>
 
-    <div class="workspace">
-      <div ref="viewport" class="viewport" @mousedown="panStart" @mousemove="panMove" @mouseup="panEnd" @mouseleave="panEnd">
-        <div class="zoom">
-          <button @click="zoomBy(-0.1)">−</button>
-          <span>{{ Math.round(vp.zoom * 100) }}%</span>
-          <button @click="zoomBy(0.1)">+</button>
-          <button @click="centrar">Centrar</button>
-        </div>
-        <div class="stage" :style="{ transform: `translate(${vp.x}px, ${vp.y}px) scale(${vp.zoom})` }">
-          <svg class="edges">
-            <line v-for="(e, i) in edges" :key="i" :x1="e.x1" :y1="e.y1" :x2="e.x2" :y2="e.y2" stroke="#05284B" stroke-width="2" />
-          </svg>
-          <div v-for="n in nodos" :key="n.id" class="node" :class="{ sel: seleccionado?.id === n.id }"
-               :style="{ left: n.x + 'px', top: n.y + 'px', width: NODE_W + 'px' }"
-               @mousedown="nodoDown($event, n)">
-            <strong>{{ n.cargo || n.nombre }}</strong>
-            <span class="tipo">{{ n.tipo }}</span>
-            <span v-if="n.nombre_apellido" class="persona">{{ n.nombre_apellido }}</span>
-          </div>
-        </div>
-      </div>
+    <ul class="tree">
+      <OrgCard v-for="u in arbol" :key="u.id" :u="u" :es-rrhh="esRrhh" :colapsados="colapsados"
+               @toggle="toggle" @drop="onDrop" @perfil="abrirPerfil"
+               @editar="(u) => abrirCard(null, u)" @hijo="(u) => abrirCard(u)" @borrar="borrar"
+               @dragstart="onDragstart" />
+    </ul>
+    <p v-if="!arbol.length" class="empty big">Aún no hay estructura. Crea una unidad con “+ Unidad”.</p>
 
-      <aside class="inspector">
-        <template v-if="sel">
-          <h3>{{ sel.cargo || sel.nombre }}</h3>
-          <div class="campo"><label>Tipo</label>
-            <select v-model="insp.tipo">
-              <option value="gerencia">Gerencia</option>
-              <option value="unidad">Unidad</option>
-              <option value="cargo">Cargo</option>
-            </select>
-          </div>
-          <div class="campo"><label>Cargo</label><input v-model="insp.cargo" placeholder="Ej. Gerente de RRHH" /></div>
-          <div class="campo"><label>Nombre y apellido</label><input v-model="insp.nombre_apellido" /></div>
-          <div class="campo"><label>Cédula</label><input :value="insp.ci" @input="fmtCi" placeholder="V-12345678" /></div>
-          <div class="campo"><label>Correo</label><input v-model="insp.correo" type="email" /></div>
-          <div class="campo"><label>Descripción</label><textarea v-model="insp.descripcion" rows="2" /></div>
-          <div class="campo"><label>Habilidades</label><TagSelect v-model="insp.habilidades" tipo="habilidad" /></div>
-          <div class="campo"><label>Competencias</label><TagSelect v-model="insp.competencias" tipo="competencia" /></div>
-          <div class="acciones">
-            <button class="primary" @click="guardarInsp">Guardar</button>
-            <button @click="nuevoHijo">+ Subordinado</button>
-            <button class="danger" @click="borrarSel">Eliminar</button>
+    <div v-if="modal" class="overlay" @click.self="modal = null">
+      <div class="dialog">
+        <template v-if="modal.mode === 'card'">
+          <h2>{{ modal.node ? 'Editar puesto' : modal.padre ? `Sub-unidad de "${modal.padre.cargo || modal.padre.nombre}"` : 'Nueva unidad' }}</h2>
+          <label>Tipo <input v-model="tipoDraft" placeholder="gerencia, unidad, analista…" /></label>
+          <label>Cargo / Nombre <input v-model="f.cargo" placeholder="Gerente de Operaciones" /></label>
+          <label>Nombre y Apellido <input v-model="f.nombre_apellido" /></label>
+          <label>CI <input :value="f.ci" @input="fmtCi" placeholder="V-12345678" inputmode="numeric" /></label>
+          <label>Correo <input v-model="f.correo" type="email" /></label>
+        </template>
+        <template v-else-if="modal.mode === 'confirm'">
+          <h2>Eliminar "{{ modal.node.cargo || modal.node.nombre }}"</h2>
+          <p class="confirmtxt">Se eliminará el puesto{{ modal.node.hijos?.length ? ' y sus sub-unidades' : '' }}. Esta acción no se puede deshacer.</p>
+          <div class="dialog-actions">
+            <button class="ghost" @click="modal = null">Cancelar</button>
+            <button class="primary danger" @click="confirmarBorrar">Eliminar</button>
           </div>
         </template>
-        <p v-else class="vacio">Selecciona una tarjeta para editar su perfil.</p>
-      </aside>
+        <template v-else>
+          <h2>Perfil de "{{ modal.node.cargo || modal.node.nombre }}"</h2>
+          <label>Descripción del puesto <textarea v-model="p.descripcion" rows="3" placeholder="Funciones y alcance" /></label>
+          <div class="tagfield" v-for="campo in ['habilidades','competencias']" :key="campo">
+            <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }}
+              <span class="hint">(del banco central — enlazan a cursos)</span></label>
+            <TagSelect :tipo="campo === 'competencias' ? 'competencia' : 'habilidad'" v-model="p[campo]" />
+          </div>
+        </template>
+        <div v-if="modal.mode === 'card' || modal.mode === 'perfil'" class="dialog-actions">
+          <button class="ghost" @click="modal = null">Cancelar</button>
+          <button class="primary" @click="guardar">Guardar</button>
+        </div>
+      </div>
     </div>
   </AppLayout>
 </template>
 
 <style scoped>
-.top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
-h1 { color: var(--navy); }
-.sub { font-size: .9rem; color: #6b7280; }
-.chat { display: flex; gap: .5rem; align-items: flex-start; margin-top: 1.2rem; background: #fff; border-radius: 14px; padding: .9rem; box-shadow: 0 4px 16px rgba(15,30,80,.1); }
-.chat textarea { flex: 1; border: 1.5px solid #e2e6f0; border-radius: 8px; padding: .55rem; font-family: inherit; resize: vertical; }
-.chatmsg { font-size: .8rem; color: var(--navy); margin: 0; align-self: center; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+h1 { color: var(--navy); margin: 0; }
+.sub { color: #6b7280; font-size: .9rem; margin: .3rem 0 0; }
+.primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
+.ghost { padding: .6rem 1.1rem; border: 1px solid #d4d9ea; border-radius: 9px; background: #fff; cursor: pointer; }
+.danger { background: #dc2626; }
+.confirmtxt { margin: 0; color: #6b7280; font-size: .85rem; }
 .error { color: var(--danger); }
+.empty { color: #9aa3b5; font-size: .85rem; padding: .6rem 0; }
+.big { text-align: center; padding: 3rem 0; }
+.tree { list-style: none; padding: 0; margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: center; }
+.tree > li { display: flex; flex-direction: column; align-items: center; }
 
-.workspace { display: flex; gap: 1rem; margin-top: 1.2rem; height: 70vh; }
-.viewport { flex: 1; position: relative; overflow: hidden; border-radius: 14px; border: 1.5px solid #e2e6f0; cursor: grab;
-  background-image: radial-gradient(#c8cede 1px, transparent 1px); background-size: 20px 20px; background-color: #fff; }
-.viewport:active { cursor: grabbing; }
-.zoom { position: absolute; top: .8rem; left: .8rem; z-index: 5; display: flex; align-items: center; background: #fff; border: 1px solid #e2e6f0; border-radius: 8px; overflow: hidden; }
-.zoom button { padding: .35rem .7rem; background: none; border: none; cursor: pointer; font-family: inherit; }
-.zoom span { padding: 0 .5rem; font-size: .8rem; }
-.stage { position: absolute; top: 0; left: 0; transform-origin: top left; width: 4000px; height: 3000px; }
-.edges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-.node { position: absolute; padding: .8rem; background: #fff; border: 2px solid var(--navy); border-radius: 10px;
-  display: flex; flex-direction: column; gap: .15rem; cursor: pointer; user-select: none; box-shadow: 0 3px 10px rgba(15,30,80,.12); }
-.node.sel { border-color: var(--orange); }
-.node strong { color: var(--navy); font-size: .9rem; }
-.node .tipo { font-size: .72rem; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; }
-.node .persona { font-size: .78rem; color: var(--navy); }
-
-.inspector { width: 320px; background: #fff; border: 1.5px solid #e2e6f0; border-radius: 14px; padding: 1rem; overflow-y: auto; }
-.inspector h3 { color: var(--navy); margin: 0 0 .8rem; }
-.campo { margin-bottom: .7rem; display: flex; flex-direction: column; gap: .25rem; }
-.campo label { font-size: .75rem; font-weight: 600; color: var(--navy); }
-.campo input, .campo select, .campo textarea { border: 1.5px solid #e2e6f0; border-radius: 8px; padding: .45rem; font-family: inherit; }
-.acciones { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .8rem; }
-.danger { color: var(--danger); }
-.vacio { color: #6b7280; font-size: .85rem; }
+.overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 360px; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; }
+.dialog h2 { margin: 0; font-size: 1.05rem; color: var(--navy); }
+.dialog label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: #374151; }
+.dialog input, .dialog select, .dialog textarea { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+.hint { font-weight: 400; color: #9aa3b5; }
+.tagfield label { font-size: .8rem; font-weight: 600; color: #374151; display: block; margin-bottom: .35rem; }
 </style>
