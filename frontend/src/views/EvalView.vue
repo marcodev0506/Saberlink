@@ -14,6 +14,8 @@ const puntaje = ref(null);
 const aprobado = ref(false);
 const tipo = ['diagnostico', 'teorica', 'practica'].includes(route.query.tipo) ? route.query.tipo : 'teorica';
 const tipoTitulo = { diagnostico: 'Evaluación diagnóstica', teorica: 'Evaluación teórica', practica: 'Evaluación práctica' }[tipo];
+const certificado = ref(null);
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 async function cargar() {
   try {
@@ -30,10 +32,20 @@ async function enviar() {
     const r = await post(`/api/cursos/${route.params.id}/evaluacion`, { respuestas: respuestas.value, tipo });
     puntaje.value = `${r.puntaje} / ${r.total}`;
     aprobado.value = r.aprobado;
+    certificado.value = r.certificado;
     enviado.value = true;
   } catch (err) {
     error.value = err.message;
   }
+}
+
+async function descargarCert() {
+  const r = await fetch(`${API}/api/certificados/${certificado.value}/pdf`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  });
+  if (!r.ok) { error.value = 'No se pudo descargar el certificado'; return; }
+  const url = URL.createObjectURL(await r.blob());
+  window.open(url, '_blank');
 }
 
 onMounted(cargar);
@@ -59,6 +71,9 @@ onMounted(cargar);
       <div v-if="enviado" class="resultado">
         Resultado: <b>{{ puntaje }}</b> — <b :style="{color: aprobado ? 'var(--navy)' : 'var(--danger)'}">{{ aprobado ? 'APROBADO' : 'NO APROBADO' }}</b>
       </div>
+      <button v-if="certificado" class="primary cert" @click="descargarCert">
+        📜 Descargar certificado (PDF con QR)
+      </button>
       <button v-if="!enviado" class="primary" :disabled="Object.keys(respuestas).length < evaluaciones.length" @click="enviar">
         Enviar evaluación
       </button>
@@ -82,4 +97,5 @@ h1 { color: var(--navy); margin: .3rem 0 0; }
 .resultado { margin-top: 1.2rem; font-size: 1.1rem; color: var(--navy); }
 .primary { margin-top: 1.4rem; padding: .7rem 1.5rem; border: 0; border-radius: 9px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
 .primary:disabled { opacity: .5; cursor: default; }
+.cert { display: block; background: var(--orange); }
 </style>

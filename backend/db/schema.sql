@@ -105,3 +105,15 @@ CREATE TABLE IF NOT EXISTS catalogo (
 );
 
 ALTER TABLE cursos ADD COLUMN IF NOT EXISTS duracion TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE IF NOT EXISTS certificados (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  codigo     UUID NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
+  curso_id   UUID NOT NULL REFERENCES cursos(id) ON DELETE CASCADE,
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  puntaje    INT NOT NULL DEFAULT 0,
+  total      INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (curso_id, usuario_id)
+);

@@ -199,7 +199,18 @@ router.post('/:id/evaluacion', async (req, res) => {
     'INSERT INTO intentos (curso_id, usuario_id, respuestas, puntaje, total, aprobado, tipo) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)',
     [c.id, req.user.sub, JSON.stringify(respuestas ?? {}), puntaje, evs.length, aprobado, t]
   );
-  res.json({ puntaje, total: evs.length, aprobado });
+  let certificado = null;
+  if (aprobado && t === 'teorica') {
+    const { rows: [ce] } = await pool.query(
+      `INSERT INTO certificados (empresa_id, curso_id, usuario_id, puntaje, total)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (curso_id, usuario_id) DO UPDATE SET puntaje = $4, total = $5
+       RETURNING codigo`,
+      [req.user.empresa_id, c.id, req.user.sub, puntaje, evs.length]
+    );
+    certificado = ce.codigo;
+  }
+  res.json({ puntaje, total: evs.length, aprobado, certificado });
 });
 
 router.get('/:id/intentos', async (req, res) => {

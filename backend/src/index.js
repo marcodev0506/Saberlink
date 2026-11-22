@@ -7,6 +7,7 @@ import usuariosRouter from './routes/usuarios.js';
 import unidadesRouter from './routes/unidades.js';
 import cursosRouter from './routes/cursos.js';
 import catalogoRouter from './routes/catalogo.js';
+import certificadosRouter from './routes/certificados.js';
 
 const app = express();
 app.use((req, res, next) => {
@@ -22,6 +23,7 @@ app.use('/api/usuarios', usuariosRouter);
 app.use('/api/unidades', unidadesRouter);
 app.use('/api/cursos', cursosRouter);
 app.use('/api/catalogo', catalogoRouter);
+app.use('/api/certificados', certificadosRouter);
 
 app.get('/health', async (_req, res) => {
   try {
