@@ -82,4 +82,5 @@ CREATE TABLE IF NOT EXISTS intentos (
   tipo        TEXT NOT NULL DEFAULT 'final' CHECK (tipo IN ('diagnostico','final')),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE intentos ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'final' CHECK (tipo IN ('diagnostico','final'));
 

@@ -164,7 +164,7 @@ router.post('/:id/evaluacion', async (req, res) => {
   const aprobado = evs.length > 0 && puntaje === evs.length;
   await pool.query(
     'INSERT INTO intentos (curso_id, usuario_id, respuestas, puntaje, total, aprobado, tipo) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)',
-    [c.id, req.user.id, JSON.stringify(respuestas ?? {}), puntaje, evs.length, aprobado, t]
+    [c.id, req.user.sub, JSON.stringify(respuestas ?? {}), puntaje, evs.length, aprobado, t]
   );
   res.json({ puntaje, total: evs.length, aprobado });
 });
