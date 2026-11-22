@@ -118,6 +118,12 @@ onMounted(cargar);
         <div class="body">
           <h3>TÍTULO DEL CURSO: {{ c.titulo }}</h3>
           <p>{{ c.objetivo || 'OBJETIVO GENERAL DEL CURSO' }}</p>
+          <div v-if="c.competencias?.length" class="tags">
+            <em v-for="t in c.competencias" :key="`c${t}`" class="tag comp">{{ t }}</em>
+          </div>
+          <div v-if="c.habilidades?.length" class="tags">
+            <em v-for="t in c.habilidades" :key="`h${t}`" class="tag hab">{{ t }}</em>
+          </div>
 
           <span class="estado" :class="c.estado">{{ c.estado }}</span>
           <button v-if="puedeCrear" class="del" @click.stop="editar(c)">✎</button>
@@ -189,6 +195,10 @@ h1 { color: var(--navy); margin: 0; }
 .estado { position: absolute; top: .9rem; right: .9rem; font-size: .65rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; background: var(--cream); color: #4b5563; text-transform: uppercase; }
 .estado.listo, .estado.publicado { background: #dde6f0; color: var(--navy); }
 .estado.procesando { background: #fdeee3; color: var(--orange); }
+.tags { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .35rem; }
+.tag { font-style: normal; font-size: .62rem; padding: .1rem .45rem; border-radius: 999px; font-weight: 700; }
+.comp { background: #fdeee3; color: var(--orange); }
+.hab { background: #dde6f0; color: var(--navy); }
 .del { margin-top: .4rem; border: 0; background: var(--cream); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
 
 .overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }

@@ -11,7 +11,7 @@ const puedeEditar = (rol) => rol === 'rrhh' || rol === 'gestor_curso';
 
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT c.id, c.titulo, c.objetivo, c.estado, c.competencias, c.audio_path,
+    `SELECT c.id, c.titulo, c.objetivo, c.estado, c.competencias, c.habilidades, c.audio_path,
             c.imagen_path, c.facilitador_id, u.nombre AS facilitador
      FROM cursos c LEFT JOIN usuarios u ON u.id = c.facilitador_id
      WHERE c.empresa_id = $1 ORDER BY c.created_at DESC`, [req.user.empresa_id]
