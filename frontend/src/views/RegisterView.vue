@@ -36,46 +36,46 @@ async function submit() {
 </script>
 
 <template>
-  <div class="layout">
-    <div class="panel-image" :style="{ backgroundImage: `url(${collage})` }" />
-    <div class="panel-form">
-      <h1>Registrar empresa</h1>
-      <p class="subtitle">El primer usuario queda como RRHH administrador</p>
-      <form @submit.prevent="submit">
-        <label>RIF de la empresa
-          <input v-model="rif" placeholder="J-12345678" required />
-        </label>
-        <label>Nombre de la empresa
-          <input v-model="empresa" required />
-        </label>
-        <label>Tu nombre
-          <input v-model="nombre" required />
-        </label>
-        <label>Correo
-          <input v-model="email" type="email" required />
-        </label>
-        <label>Contraseña
-          <input v-model="password" type="password" required minlength="8" />
-        </label>
-        <p v-if="error" class="error">{{ error }}</p>
-        <button :disabled="loading">{{ loading ? 'Registrando…' : 'Registrar' }}</button>
-      </form>
-      <p class="link"><router-link to="/login">Ya tengo cuenta</router-link></p>
+  <div class="auth-layout">
+    <aside class="auth-brand" :style="{ backgroundImage: `url(${collage})` }">
+      <div class="logo">Saber<span>link</span></div>
+      <h2>Lleva la acreditación de tu empresa al siguiente nivel</h2>
+      <p class="lead">Registra tu empresa con su RIF y crea tu espacio en minutos.</p>
+      <ul>
+        <li>Roles: RRHH, Experto y Trabajador</li>
+        <li>Banco de preguntas y exámenes</li>
+        <li>Certificados PDF con código QR</li>
+      </ul>
+    </aside>
+
+    <div class="auth-side">
+      <div class="auth-card">
+        <div class="badge">SL</div>
+        <h1>Registrar empresa</h1>
+        <p class="subtitle">El primer usuario queda como administrador RRHH</p>
+        <form @submit.prevent="submit">
+          <label>RIF de la empresa
+            <input v-model="rif" placeholder="J-12345678" required />
+          </label>
+          <label>Nombre de la empresa
+            <input v-model="empresa" required />
+          </label>
+          <label>Tu nombre
+            <input v-model="nombre" required />
+          </label>
+          <label>Correo
+            <input v-model="email" type="email" required placeholder="nombre@empresa.com" />
+          </label>
+          <label>Contraseña
+            <input v-model="password" type="password" required minlength="8" placeholder="Mínimo 8 caracteres" />
+          </label>
+          <p v-if="error" class="error">{{ error }}</p>
+          <button :disabled="loading">{{ loading ? 'Registrando…' : 'Registrar' }}</button>
+        </form>
+        <p class="link"><router-link to="/login">Ya tengo cuenta</router-link></p>
+      </div>
     </div>
   </div>
 </template>
 
-<style scoped>
-.layout { display: flex; min-height: 100vh; }
-.panel-image { flex: 1; background-size: cover; background-position: center; }
-.panel-form { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 3rem; max-width: 480px; margin: 0 auto; }
-h1 { margin: 0; font-size: 2rem; }
-.subtitle { color: #666; margin-bottom: 2rem; }
-form { display: flex; flex-direction: column; gap: 1rem; }
-label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; }
-input { padding: 0.6rem; border: 1px solid #ccc; border-radius: 6px; }
-button { padding: 0.7rem; background: #1a56db; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
-.error { color: #c0392b; margin: 0; }
-.link { margin-top: 1.5rem; font-size: 0.85rem; }
-@media (max-width: 720px) { .panel-image { display: none; } }
-</style>
+<style src="../auth.css"></style>
