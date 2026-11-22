@@ -18,6 +18,30 @@ const pagina = ref(0);
 const POR_PAGINA = 10;
 const totalPaginas = computed(() => Math.max(1, Math.ceil(usuarios.value.length / POR_PAGINA)));
 const usuariosPagina = computed(() => usuarios.value.slice(pagina.value * POR_PAGINA, (pagina.value + 1) * POR_PAGINA));
+const seleccion = ref(new Set());
+const yoId = JSON.parse(localStorage.getItem('user') || '{}').id;
+const todosMarcados = computed(() => usuariosPagina.value.filter(u => u.id !== yoId).every(u => seleccion.value.has(u.id)));
+const seleccionados = computed(() => [...seleccion.value].filter(id => usuarios.value.some(u => u.id === id)));
+
+function toggleTodos() {
+  const s = new Set(seleccion.value);
+  for (const u of usuariosPagina.value) {
+    if (u.id === yoId) continue;
+    todosMarcados.value ? s.delete(u.id) : s.add(u.id);
+  }
+  seleccion.value = s;
+}
+function toggleUno(id) {
+  const s = new Set(seleccion.value);
+  s.has(id) ? s.delete(id) : s.add(id);
+  seleccion.value = s;
+}
+async function cambiarEstado(activo) {
+  if (!seleccionados.value.length) return;
+  await post('/api/usuarios/estado', { ids: seleccionados.value, activo });
+  seleccion.value = new Set();
+  await cargar();
+}
 
 async function importar(ev) {
   const f = ev.target.files[0];
@@ -100,17 +124,27 @@ onMounted(cargar);
     <section class="card" v-show="tab === 'lista'">
       <table>
         <thead>
-          <tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Alta</th></tr>
+          <tr>
+            <th><input type="checkbox" :checked="todosMarcados" @change="toggleTodos" /></th>
+            <th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Alta</th>
+          </tr>
         </thead>
         <tbody>
-          <tr v-for="u in usuariosPagina" :key="u.id">
+          <tr v-for="u in usuariosPagina" :key="u.id" :class="{ inactivo: !u.activo }">
+            <td><input v-if="u.id !== yoId" type="checkbox" :checked="seleccion.has(u.id)" @change="toggleUno(u.id)" /></td>
             <td>{{ u.nombre }}</td>
             <td>{{ u.email }}</td>
             <td><span class="chip" :data-rol="u.rol">{{ u.rol }}</span></td>
+            <td><span class="chip" :data-activo="u.activo">{{ u.activo ? 'activo' : 'inhabilitado' }}</span></td>
             <td>{{ new Date(u.created_at).toLocaleDateString() }}</td>
           </tr>
         </tbody>
       </table>
+      <div class="bulk" v-if="seleccionados.length">
+        <span>{{ seleccionados.length }} seleccionados</span>
+        <button class="warn" @click="cambiarEstado(false)">Inhabilitar</button>
+        <button @click="cambiarEstado(true)">Habilitar</button>
+      </div>
       <nav class="pager" v-if="totalPaginas > 1">
         <button :disabled="pagina === 0" @click="pagina--">← Anterior</button>
         <span>Página {{ pagina + 1 }} de {{ totalPaginas }}</span>
@@ -128,6 +162,11 @@ h1 { color: var(--navy); }
 .pager { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; font-size: .85rem; color: var(--navy); font-weight: 600; }
 .pager button { padding: .45rem 1rem; border: 0; border-radius: 8px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
 .pager button:disabled { opacity: .4; cursor: default; }
+.bulk { display: flex; align-items: center; gap: .8rem; margin-top: 1rem; font-size: .85rem; font-weight: 600; color: var(--navy); }
+.bulk button { padding: .45rem 1rem; border: 0; border-radius: 8px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
+.bulk button.warn { background: var(--danger); }
+.chip[data-activo='false'] { background: #f8d7d5; color: var(--danger); }
+tr.inactivo td { opacity: .55; }
 .loading { display: flex; align-items: center; gap: .5rem; color: var(--navy); font-weight: 600; font-size: .85rem; }
 .spinner { width: 16px; height: 16px; border: 2px solid #e8dcc4; border-top-color: var(--navy); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }

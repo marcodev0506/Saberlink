@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT true;
 
 -- Árbol organizacional genérico: cada empresa define sus propios tipos y niveles
 CREATE TABLE IF NOT EXISTS unidades (

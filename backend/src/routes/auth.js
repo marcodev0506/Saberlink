@@ -76,12 +76,13 @@ router.post('/login', async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Faltan campos' });
 
   const { rows: [user] } = await pool.query(
-    `SELECT u.id, u.empresa_id, u.rol, u.nombre, u.email, u.password_hash, u.debe_cambiar_password, e.nombre AS empresa, e.rif
+    `SELECT u.id, u.empresa_id, u.rol, u.nombre, u.email, u.password_hash, u.debe_cambiar_password, u.activo, e.nombre AS empresa, e.rif
      FROM usuarios u JOIN empresas e ON e.id = u.empresa_id WHERE u.email = $1`, [email]
   );
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
     return res.status(401).json({ error: 'Credenciales inválidas' });
   }
+  if (!user.activo) return res.status(403).json({ error: 'Usuario inhabilitado' });
   res.json({
     token: sign(user),
     user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol, debe_cambiar_password: user.debe_cambiar_password },

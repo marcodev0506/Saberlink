@@ -16,7 +16,7 @@ function requireRrhh(req, res, next) {
 
 router.get('/', requireRrhh, async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, nombre, email, rol, created_at FROM usuarios
+    `SELECT id, nombre, email, rol, activo, created_at FROM usuarios
      WHERE empresa_id = $1 ORDER BY created_at`, [req.user.empresa_id]
   );
   res.json({ usuarios: rows });
@@ -78,6 +78,17 @@ router.post('/importar', requireRrhh, async (req, res) => {
     }
   }
   res.json({ creados, omitidos, errores, password_default: DEFAULT_PASSWORD });
+});
+
+// Inhabilitar / habilitar usuarios por bloques (sin borrar de la BD)
+router.post('/estado', requireRrhh, async (req, res) => {
+  const { ids, activo } = req.body ?? {};
+  if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: 'Faltan ids' });
+  const r = await pool.query(
+    'UPDATE usuarios SET activo = $2 WHERE id = ANY($1::uuid[]) AND empresa_id = $3 AND id <> $4',
+    [ids, !!activo, req.user.empresa_id, req.user.sub]
+  );
+  res.json({ actualizados: r.rowCount });
 });
 
 export default router;
