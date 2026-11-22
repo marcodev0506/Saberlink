@@ -49,7 +49,7 @@ onMounted(async () => {
             <span>acreditación</span>
             <p>PDF con QR único, verificable públicamente.</p>
           </router-link>
-          <router-link v-if="user.rol !== 'trabajador'" to="/evaluaciones" class="bloque" style="animation-delay:.45s">
+          <router-link v-if="user.rol !== 'trabajador'" to="/evaluaciones/reportes" class="bloque" style="animation-delay:.45s">
             <img class="ico" src="/icons/usuarios.png" alt="" />
             <b>Reportes</b>
             <span>evaluaciones</span>

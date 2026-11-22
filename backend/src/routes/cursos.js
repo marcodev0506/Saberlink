@@ -38,6 +38,210 @@ router.get('/resultados', async (req, res) => {
   res.json({ resultados: rows });
 });
 
+// Reportes avanzados de desempeño, avance diagnóstico vs final y acreditación de competencias
+router.get('/reportes', async (req, res) => {
+  if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
+  const empresaId = req.user.empresa_id;
+
+  const [usuariosRes, unidadesRes, cursosRes, intentosRes, certsRes] = await Promise.all([
+    pool.query(
+      `SELECT id, nombre, email, rol, activo FROM usuarios
+       WHERE empresa_id = $1 AND activo = true ORDER BY nombre`,
+      [empresaId]
+    ),
+    pool.query(
+      `SELECT id, parent_id, nombre, tipo, cargo, nombre_apellido, ci, correo, competencias, habilidades
+       FROM unidades WHERE empresa_id = $1`,
+      [empresaId]
+    ),
+    pool.query(
+      `SELECT id, titulo, duracion, estado, competencias, habilidades
+       FROM cursos WHERE empresa_id = $1 ORDER BY titulo`,
+      [empresaId]
+    ),
+    pool.query(
+      `SELECT i.id, i.curso_id, i.usuario_id, i.puntaje, i.total, i.aprobado, i.tipo, i.created_at
+       FROM intentos i
+       JOIN cursos c ON c.id = i.curso_id
+       WHERE c.empresa_id = $1
+       ORDER BY i.created_at ASC`,
+      [empresaId]
+    ),
+    pool.query(
+      `SELECT codigo, curso_id, usuario_id, puntaje, total, created_at
+       FROM certificados WHERE empresa_id = $1`,
+      [empresaId]
+    ),
+  ]);
+
+  const norm = (s) => String(s || '').trim().toLowerCase();
+  const unitById = new Map(unidadesRes.rows.map((u) => [u.id, u]));
+  const unitByEmail = new Map();
+  const unitByName = new Map();
+  for (const u of unidadesRes.rows) {
+    if (norm(u.correo)) unitByEmail.set(norm(u.correo), u);
+    if (norm(u.nombre_apellido)) unitByName.set(norm(u.nombre_apellido), u);
+  }
+
+  const trabajadores = usuariosRes.rows.map((u) => {
+    const unit = unitByEmail.get(norm(u.email)) || unitByName.get(norm(u.nombre)) || null;
+    const parent = unit?.parent_id ? unitById.get(unit.parent_id) : null;
+    return {
+      id: u.id,
+      nombre: u.nombre,
+      email: u.email,
+      rol: u.rol,
+      puesto: unit ? (unit.cargo || unit.nombre) : '',
+      area: parent ? (parent.cargo || parent.nombre) : (unit?.tipo || ''),
+      competencias_puesto: Array.isArray(unit?.competencias) ? unit.competencias : [],
+      habilidades_puesto: Array.isArray(unit?.habilidades) ? unit.habilidades : [],
+    };
+  });
+  const trabById = new Map(trabajadores.map((t) => [t.id, t]));
+  const cursoById = new Map(cursosRes.rows.map((c) => [c.id, c]));
+
+  const certMap = new Map();
+  for (const ce of certsRes.rows) {
+    certMap.set(`${ce.usuario_id}:${ce.curso_id}`, ce);
+  }
+
+  // Agrupar intentos por (usuario_id, curso_id)
+  const pares = new Map();
+  const ensurePar = (uid, cid) => {
+    const key = `${uid}:${cid}`;
+    if (!pares.has(key)) {
+      pares.set(key, { usuario_id: uid, curso_id: cid, diag: null, final: null, practica: null, intentos: 0, ultima_fecha: null });
+    }
+    return pares.get(key);
+  };
+
+  for (const it of intentosRes.rows) {
+    if (!trabById.has(it.usuario_id) || !cursoById.has(it.curso_id)) continue;
+    const p = ensurePar(it.usuario_id, it.curso_id);
+    p.intentos++;
+    p.ultima_fecha = it.created_at;
+    if (it.tipo === 'diagnostico') {
+      // Diagnóstica inicial = primer intento diagnóstico registrado
+      if (!p.diag) p.diag = it;
+    } else if (it.tipo === 'practica') {
+      p.practica = it;
+    } else {
+      // Evaluación final (teórica / final) = último intento (o el más reciente aprobado)
+      if (!p.final || it.aprobado || !p.final.aprobado) {
+        p.final = it;
+      }
+    }
+  }
+
+  for (const ce of certsRes.rows) {
+    if (!trabById.has(ce.usuario_id) || !cursoById.has(ce.curso_id)) continue;
+    const p = ensurePar(ce.usuario_id, ce.curso_id);
+    if (!p.ultima_fecha || new Date(ce.created_at) > new Date(p.ultima_fecha)) {
+      p.ultima_fecha = ce.created_at;
+    }
+  }
+
+  const pct = (puntaje, total) => (total > 0 ? Math.round((puntaje / total) * 1000) / 10 : null);
+  const intersect = (a = [], b = []) => {
+    const setB = new Set(b.map(norm));
+    return a.filter((x) => setB.has(norm(x)));
+  };
+
+  const registros = [];
+  for (const [key, p] of pares.entries()) {
+    const t = trabById.get(p.usuario_id);
+    const c = cursoById.get(p.curso_id);
+    const ce = certMap.get(key) || null;
+
+    const diagPct = p.diag ? pct(p.diag.puntaje, p.diag.total) : null;
+    const finalPuntaje = p.final ? p.final.puntaje : (ce ? ce.puntaje : null);
+    const finalTotal = p.final ? p.final.total : (ce ? ce.total : null);
+    const finalPct = finalTotal != null ? pct(finalPuntaje, finalTotal) : null;
+    const finalAprobado = Boolean(p.final?.aprobado || ce);
+
+    const gananciaPct = (diagPct !== null && finalPct !== null)
+      ? Math.round((finalPct - diagPct) * 10) / 10
+      : null;
+    const gananciaPts = (p.diag && finalPuntaje !== null && p.diag.total === finalTotal)
+      ? (finalPuntaje - p.diag.puntaje)
+      : null;
+
+    const cursoComp = Array.isArray(c.competencias) ? c.competencias : [];
+    const cursoHab = Array.isArray(c.habilidades) ? c.habilidades : [];
+    const compVinculadas = intersect(cursoComp, t.competencias_puesto);
+    const habVinculadas = intersect(cursoHab, t.habilidades_puesto);
+
+    const acreditado = Boolean(ce || finalAprobado);
+    let estado = 'pendiente';
+    if (acreditado) estado = 'acreditado';
+    else if (finalPct !== null) estado = 'reprobado';
+    else if (diagPct !== null) estado = 'en_curso';
+
+    registros.push({
+      id: key,
+      usuario_id: t.id,
+      trabajador: t.nombre,
+      email: t.email,
+      puesto: t.puesto,
+      area: t.area,
+      curso_id: c.id,
+      curso: c.titulo,
+      duracion: c.duracion || '',
+      diag_puntaje: p.diag?.puntaje ?? null,
+      diag_total: p.diag?.total ?? null,
+      diag_pct: diagPct,
+      diag_fecha: p.diag?.created_at ?? null,
+      final_puntaje: finalPuntaje,
+      final_total: finalTotal,
+      final_pct: finalPct,
+      final_aprobado: finalAprobado,
+      final_fecha: p.final?.created_at ?? ce?.created_at ?? null,
+      ganancia_pct: gananciaPct,
+      ganancia_pts: gananciaPts,
+      intentos: p.intentos,
+      acreditado,
+      estado,
+      certificado: ce?.codigo ?? null,
+      curso_competencias: cursoComp,
+      curso_habilidades: cursoHab,
+      competencias_puesto: t.competencias_puesto,
+      habilidades_puesto: t.habilidades_puesto,
+      competencias_vinculadas: compVinculadas,
+      habilidades_vinculadas: habVinculadas,
+      alineado_puesto: compVinculadas.length > 0 || habVinculadas.length > 0,
+      competencias_acreditadas: acreditado ? cursoComp : [],
+      habilidades_acreditadas: acreditado ? cursoHab : [],
+      ultima_fecha: p.ultima_fecha,
+    });
+  }
+
+  registros.sort((a, b) => new Date(b.ultima_fecha || 0) - new Date(a.ultima_fecha || 0));
+
+  // Resumen por curso
+  const cursos = cursosRes.rows.map((c) => {
+    const regs = registros.filter((r) => r.curso_id === c.id);
+    const diags = regs.filter((r) => r.diag_pct !== null);
+    const finals = regs.filter((r) => r.final_pct !== null);
+    const gains = regs.filter((r) => r.ganancia_pct !== null);
+    const avg = (arr, fn) => arr.length ? Math.round((arr.reduce((s, x) => s + fn(x), 0) / arr.length) * 10) / 10 : null;
+    return {
+      id: c.id,
+      titulo: c.titulo,
+      duracion: c.duracion || '',
+      estado: c.estado,
+      competencias: Array.isArray(c.competencias) ? c.competencias : [],
+      habilidades: Array.isArray(c.habilidades) ? c.habilidades : [],
+      participantes: regs.length,
+      acreditados: regs.filter((r) => r.acreditado).length,
+      promedio_diag: avg(diags, (r) => r.diag_pct),
+      promedio_final: avg(finals, (r) => r.final_pct),
+      ganancia_promedio: avg(gains, (r) => r.ganancia_pct),
+    };
+  }).sort((a, b) => b.participantes - a.participantes || a.titulo.localeCompare(b.titulo));
+
+  res.json({ registros, cursos, trabajadores });
+});
+
 router.get('/:id', async (req, res) => {
   const { rows: [c] } = await pool.query(
     `SELECT c.id, c.titulo, c.objetivo, c.estado, c.evaluaciones, c.guion, c.imagen_path, u.nombre AS facilitador

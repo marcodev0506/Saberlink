@@ -27,7 +27,14 @@ const links = computed(() => {
   }
   l.push({ to: '/cursos', label: 'Cursos', hijos: [{ to: '/cursos', label: 'Todos los cursos' }, { to: '/catalogo', label: 'Catálogo' }] });
   if (user.value?.rol === 'rrhh' || user.value?.rol === 'gestor_curso') {
-    l.push({ to: '/evaluaciones', label: 'Evaluaciones' });
+    l.push({
+      to: '/evaluaciones',
+      label: 'Evaluaciones',
+      hijos: [
+        { to: '/evaluaciones', label: 'Resultados' },
+        { to: '/evaluaciones/reportes', label: 'Reportes' },
+      ],
+    });
   }
   l.push({ to: '/certificados', label: user.value?.rol === 'trabajador' ? 'Mis certificados' : 'Certificados' });
   return l;
@@ -49,7 +56,7 @@ function logout() {
       <div class="nav-links">
         <template v-for="l in links" :key="l.to">
           <div v-if="l.hijos" class="menu">
-            <router-link :to="l.to" :class="{ active: route.path === l.to }">{{ l.label }} ▾</router-link>
+            <router-link :to="l.to" :class="{ active: route.path === l.to || l.hijos.some(h => route.path === h.to) }">{{ l.label }} ▾</router-link>
             <div class="submenu">
               <router-link v-for="h in l.hijos" :key="h.to" :to="h.to" :class="{ active: route.path === h.to }">{{ h.label }}</router-link>
             </div>
