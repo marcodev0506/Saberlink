@@ -6,7 +6,7 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import AppLayout from '../components/AppLayout.vue';
 
 const cursos = ref([]);
-const gestores de curso = ref([]);
+const gestoresDeCurso = ref([]);
 const error = ref('');
 const modal = ref(false);
 const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -25,7 +25,7 @@ async function cargar() {
     get('/api/usuarios').catch(() => ({ usuarios: [] })),
   ]);
   cursos.value = c.cursos;
-  gestores de curso.value = (u.usuarios || []).filter((x) => x.rol === 'gestor_curso');
+  gestoresDeCurso.value = (u.usuarios || []).filter((x) => x.rol === 'gestor_curso');
   const token = localStorage.getItem('token');
   for (const cur of c.cursos) {
     if (!cur.imagen_path) continue;
@@ -97,7 +97,7 @@ onMounted(cargar);
     <header class="top">
       <div>
         <h1>Cursos</h1>
-        <p class="sub">El gestor_curso sube el PDF; la IA genera el guion, las evaluaciones y el audio con ElevenLabs.</p>
+        <p class="sub">El gestor de curso sube el PDF; la IA genera el guion, las evaluaciones y el audio con ElevenLabs.</p>
       </div>
       <div class="actions">
         <a class="ghost link" href="/plantilla_unidad.docx" download>📄 Plantilla</a>
