@@ -38,6 +38,8 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-saberlink}:${RABBITMQ_PASS:-saberlink}@rabbitmq:5672
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       STORAGE_DIR: /app/storage
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID:-21m00Tcm4TlvDq8ikWAM}
     ports:
       - "3000:3000"
     volumes:

@@ -49,6 +49,24 @@ async function guardar() {
   }
 }
 
+const probando = ref(false);
+const audioUrl = ref('');
+async function probarVoz() {
+  probando.value = true;
+  error.value = '';
+  try {
+    const r = await fetch('http://localhost:3000/api/voz/test');
+    if (!r.ok) throw new Error((await r.json()).error || `Error ${r.status}`);
+    const blob = await r.blob();
+    audioUrl.value = URL.createObjectURL(blob);
+    new Audio(audioUrl.value).play();
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    probando.value = false;
+  }
+}
+
 async function borrar(c) {
   modal.value = 'confirm-' + c.id;
 }
@@ -68,7 +86,10 @@ onMounted(cargar);
         <h1>Cursos</h1>
         <p class="sub">El experto sube el PDF; la IA genera el guion, las evaluaciones y el audio con ElevenLabs.</p>
       </div>
-      <button v-if="puedeCrear" class="primary" @click="modal = true">+ Curso</button>
+      <div class="actions">
+        <button class="ghost" @click="probarVoz" :disabled="probando">{{ probando ? 'Generando…' : '🔊 Probar voz' }}</button>
+        <button v-if="puedeCrear" class="primary" @click="modal = true">+ Curso</button>
+      </div>
     </header>
     <p v-if="error" class="error">{{ error }}</p>
 
@@ -125,6 +146,7 @@ h1 { color: #14204a; margin: 0; }
 .primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: #1a56db; color: #fff; font-weight: 700; cursor: pointer; }
 .ghost { padding: .6rem 1.1rem; border: 1px solid #d4d9ea; border-radius: 9px; background: #fff; cursor: pointer; }
 .danger { background: #dc2626; }
+.actions { display: flex; gap: .5rem; }
 .error { color: #b42318; }
 .empty { color: #9aa3b5; padding: 3rem 0; text-align: center; }
 .confirmtxt { color: #6b7280; font-size: .85rem; margin: 0; }
