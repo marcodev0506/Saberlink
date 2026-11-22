@@ -83,7 +83,7 @@ onMounted(cargar);
             </header>
             <p>{{ l.texto }}</p>
           </div>
-          <img src="/robot.png" alt="Asistente" class="robot" :class="{ hablando: reproduciendo === l.id }" />
+          <img v-if="reproduciendo === l.id || generando === l.id" src="/robot.png" alt="Asistente" class="robot" :class="{ hablando: reproduciendo === l.id }" />
         </div>
       </article>
       <p v-if="curso && !lecciones.length" class="empty">
