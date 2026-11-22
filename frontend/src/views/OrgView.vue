@@ -220,7 +220,7 @@ onMounted(cargar);
             </div>
           </div>
         </template>
-        <div class="dialog-actions">
+        <div v-if="modal.mode === 'card' || modal.mode === 'perfil'" class="dialog-actions">
           <button class="ghost" @click="modal = null">Cancelar</button>
           <button class="primary" @click="guardar">Guardar</button>
         </div>
