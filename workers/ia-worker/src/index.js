@@ -59,19 +59,19 @@ function extractDocxText(buffer) {
 // completas (2.1, 2.2, ...), sin resumir. Objetivos (1), Actividades (3) y
 // Recursos (4) no se usan como unidades.
 function parsePlantillaSecciones(texto) {
-  const ini = texto.search(/(?:^|\n)\s*2\s*\.\s*Desarrollo del Contenido/i);
+  const ini = texto.search(/desarrollo del contenido/i);
   if (ini < 0) return null;
   const resto = texto.slice(ini);
-  const fin = resto.search(/\n\s*3\s*\.\s*Actividades/i);
+  const fin = resto.search(/\n\s*\d*\.?\s*actividades/i);
   const desarrollo = fin > 0 ? resto.slice(0, fin) : resto;
   // divide en párrafos y reagrupa por subtítulos "2.x Título"
   const lines = desarrollo.split('\n').map((l) => l.trim()).filter(Boolean);
   const secciones = [];
   let actual = null;
   for (const line of lines.slice(1)) {            // salta la línea "2. Desarrollo…"
-    const m = line.match(/^2\.(\d+)\s+(.+)/);
+    const m = line.match(/^(\d+)\.(\d+)\s+(.+)/);
     if (m) {
-      actual = { titulo: `2.${m[1]} ${m[2]}`, texto: `${m[2]}\n` };
+      actual = { titulo: `${m[1]}.${m[2]} ${m[3]}`, texto: `${m[3]}\n` };
       secciones.push(actual);
     } else if (actual) {
       actual.texto += line + '\n';
@@ -89,6 +89,7 @@ async function procesarCurso({ curso_id, pdf_path }) {
 
   let secciones = parsePlantillaSecciones(texto);
   console.log(`curso ${curso_id}: plantilla=${!!secciones}`);
+  if (!secciones) console.log('inicio del texto extraído:', texto.slice(0, 400).replace(/\n/g, ' | '));
   let evaluaciones = [];
 
   const promptEvals =
