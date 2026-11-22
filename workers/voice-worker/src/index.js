@@ -37,11 +37,14 @@ async function main() {
     try {
       const job = JSON.parse(msg.content.toString());
       const audio = await textToSpeech(job.payload.guion ?? job.payload.text ?? '');
-      const name = `${job.payload?.curso_id ?? Date.now()}.mp3`;
+      const name = `${job.payload?.leccion_id ?? job.payload?.curso_id ?? Date.now()}.mp3`;
       await fs.mkdir(STORAGE_DIR, { recursive: true });
       await fs.writeFile(`${STORAGE_DIR}/${name}`, audio);
-      if (pool && job.payload?.curso_id)
-        await pool.query('UPDATE cursos SET audio_path = $1 WHERE id = $2', [`${STORAGE_DIR}/${name}`, job.payload.curso_id]);
+      const path = `${STORAGE_DIR}/${name}`;
+      if (pool && job.payload?.leccion_id)
+        await pool.query('UPDATE lecciones SET audio_path = $1 WHERE id = $2', [path, job.payload.leccion_id]);
+      else if (pool && job.payload?.curso_id)
+        await pool.query('UPDATE cursos SET audio_path = $1 WHERE id = $2', [path, job.payload.curso_id]);
       console.log(`audio saved: ${name}`);
       ch.ack(msg);
     } catch (err) {

@@ -94,14 +94,14 @@ onMounted(cargar);
     <p v-if="error" class="error">{{ error }}</p>
 
     <div class="grid">
-      <article v-for="c in cursos" :key="c.id" class="card">
+      <article v-for="c in cursos" :key="c.id" class="card" @click="$router.push(`/cursos/${c.id}`)">
         <div class="cover">IMAGEN REFERENCIAL DEL CURSO</div>
         <div class="body">
           <h3>TÍTULO DEL CURSO: {{ c.titulo }}</h3>
           <p>{{ c.objetivo || 'OBJETIVO GENERAL DEL CURSO' }}</p>
           <p class="fac">FACILITADOR: {{ c.facilitador || '—' }}</p>
           <span class="estado" :class="c.estado">{{ c.estado }}</span>
-          <button v-if="puedeCrear" class="del" @click="borrar(c)">🗑</button>
+          <button v-if="puedeCrear" class="del" @click.stop="borrar(c)">🗑</button>
         </div>
       </article>
       <p v-if="!cursos.length" class="empty">Aún no hay cursos. Crea uno con “+ Curso”.</p>

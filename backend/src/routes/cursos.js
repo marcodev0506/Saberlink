@@ -19,6 +19,31 @@ router.get('/', async (req, res) => {
   res.json({ cursos: rows });
 });
 
+router.get('/:id', async (req, res) => {
+  const { rows: [c] } = await pool.query(
+    `SELECT c.id, c.titulo, c.objetivo, c.estado, c.evaluaciones, c.guion, u.nombre AS facilitador
+     FROM cursos c LEFT JOIN usuarios u ON u.id = c.facilitador_id
+     WHERE c.id = $1 AND c.empresa_id = $2`, [req.params.id, req.user.empresa_id]
+  );
+  if (!c) return res.status(404).json({ error: 'Curso no encontrado' });
+  const { rows: lecciones } = await pool.query(
+    'SELECT id, orden, titulo, texto, audio_path FROM lecciones WHERE curso_id = $1 ORDER BY orden',
+    [c.id]
+  );
+  res.json({ curso: c, lecciones });
+});
+
+// Audio de una lección
+router.get('/:id/audio/:leccionId', async (req, res) => {
+  const { rows: [l] } = await pool.query(
+    `SELECT l.audio_path FROM lecciones l JOIN cursos c ON c.id = l.curso_id
+     WHERE l.id = $1 AND c.id = $2 AND c.empresa_id = $3`,
+    [req.params.leccionId, req.params.id, req.user.empresa_id]
+  );
+  if (!l?.audio_path) return res.status(404).json({ error: 'Sin audio' });
+  res.sendFile(l.audio_path);
+});
+
 router.post('/', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Experto' });
   const { titulo, objetivo, facilitador_id, competencias, pdf_base64, pdf_nombre } = req.body ?? {};

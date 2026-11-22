@@ -58,3 +58,14 @@ CREATE TABLE IF NOT EXISTS cursos (
 );
 CREATE INDEX IF NOT EXISTS cursos_empresa_idx ON cursos(empresa_id);
 
+CREATE TABLE IF NOT EXISTS lecciones (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  curso_id   UUID NOT NULL REFERENCES cursos(id) ON DELETE CASCADE,
+  orden      INT NOT NULL DEFAULT 0,
+  titulo     TEXT NOT NULL,
+  texto      TEXT NOT NULL DEFAULT '',
+  audio_path TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS lecciones_curso_idx ON lecciones(curso_id, orden);
+
