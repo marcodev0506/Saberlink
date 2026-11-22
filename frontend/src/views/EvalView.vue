@@ -76,4 +76,3 @@ h1 { color: #14204a; margin: .3rem 0 0; }
 .primary { margin-top: 1.4rem; padding: .7rem 1.5rem; border: 0; border-radius: 9px; background: #1a56db; color: #fff; font-weight: 700; cursor: pointer; }
 .primary:disabled { opacity: .5; cursor: default; }
 </style>
-</file-path>
