@@ -55,17 +55,52 @@ function extractDocxText(buffer) {
     .slice(0, 15000);
 }
 
+// Divide la sección "2. Desarrollo del Contenido" de la plantilla en unidades
+// completas (2.1, 2.2, ...), sin resumir. Objetivos (1), Actividades (3) y
+// Recursos (4) no se usan como unidades.
+function parsePlantillaSecciones(texto) {
+  const ini = texto.search(/2\.\s*Desarrollo del Contenido/i);
+  const fin = texto.search(/3\.\s*Actividades/i);
+  if (ini < 0 || fin <= ini) return null;
+  const desarrollo = texto.slice(ini, fin);
+  const partes = desarrollo.split(/\n(?=\d\.\d+\s)/).filter((p) => p.trim());
+  const secciones = [];
+  for (const p of partes) {
+    const m = p.match(/^(\d\.\d+)\s+(.+)/);
+    if (!m) continue;
+    const titulo = `${m[1]} ${m[2].trim()}`;
+    const cuerpo = p.slice(p.indexOf('\n') + 1).trim();
+    secciones.push({ titulo, texto: `${m[2].trim()}. ${cuerpo}` });
+  }
+  return secciones.length ? secciones : null;
+}
+
 async function procesarCurso({ curso_id, pdf_path }) {
   const buf = await readFile(pdf_path);
   const texto = pdf_path.endsWith('.docx')
     ? extractDocxText(buf)
     : (extractPdfText(buf) || 'PDF sin texto extraíble');
-  const out = await callOllama(
-    `Eres un diseñador instruccional. Divide este contenido de curso en unidades o temas. ` +
-    `Responde SOLO con JSON {"secciones": [{"titulo": "Unidad 1: ...", "texto": "guion narrado de la unidad"}], ` +
-    `"evaluaciones": [{"pregunta": "...", "opciones": ["a","b","c"], "correcta": 0}]}.\n\nContenido:\n${texto}`
-  );
-  const { secciones, evaluaciones } = parseJsonSecciones(out);
+
+  let secciones = parsePlantillaSecciones(texto);
+  let evaluaciones = [];
+
+  const promptEvals =
+    `Eres un diseñador instruccional. Genera 5 evaluaciones de opción múltiple sobre este contenido. ` +
+    `Responde SOLO con JSON {"evaluaciones": [{"pregunta": "...", "opciones": ["a","b","c"], "correcta": 0}]}.\n\nContenido:\n${texto.slice(0, 12000)}`;
+
+  if (secciones) {
+    const out = await callOllama(promptEvals);
+    const m = out.match(/\{[\s\S]*\}/);
+    try { evaluaciones = JSON.parse(m ? m[0] : '{}').evaluaciones ?? []; } catch { /* sin JSON */ }
+    if (!Array.isArray(evaluaciones)) evaluaciones = [];
+  } else {
+    const out = await callOllama(
+      `Eres un diseñador instruccional. Divide este contenido de curso en unidades o temas. ` +
+      `Responde SOLO con JSON {"secciones": [{"titulo": "Unidad 1: ...", "texto": "guion narrado de la unidad"}], ` +
+      `"evaluaciones": [{"pregunta": "...", "opciones": ["a","b","c"], "correcta": 0}]}.\n\nContenido:\n${texto}`
+    );
+    ({ secciones, evaluaciones } = parseJsonSecciones(out));
+  }
   const guion = secciones.map((s) => s.texto).join('\n\n');
   await pool.query(
     "UPDATE cursos SET guion = $1, evaluaciones = $2::jsonb, estado = 'listo' WHERE id = $3",
