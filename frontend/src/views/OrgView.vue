@@ -76,10 +76,14 @@ async function guardar() {
   }
 }
 
-async function borrar(node) {
-  if (!confirm(`Eliminar "${node.cargo || node.nombre}"${node.hijos?.length ? ' y sus sub-unidades' : ''}?`)) return;
+function borrar(node) {
+  modal.value = { mode: 'confirm', node };
+}
+
+async function confirmarBorrar() {
   try {
-    await del(`/api/unidades/${node.id}`);
+    await del(`/api/unidades/${modal.value.node.id}`);
+    modal.value = null;
     await cargar();
   } catch (err) {
     error.value = err.message;
@@ -95,22 +99,30 @@ function onDrop(nivel) {
   put(`/api/unidades/${node.id}`, { tipo: nivel }).then(cargar).catch((e) => (error.value = e.message));
 }
 
-async function renombrarNivel(nivel) {
-  const nuevo = prompt(`Renombrar nivel "${nivel}" a:`, nivel);
-  if (!nuevo?.trim() || nuevo.trim() === nivel) return;
-  try {
-    await Promise.all(porNivel(nivel).map((u) => put(`/api/unidades/${u.id}`, { tipo: nuevo.trim().toLowerCase() })));
-    await cargar();
-  } catch (err) {
-    error.value = err.message;
-  }
+const nivelDraft = ref('');
+
+function renombrarNivel(nivel) {
+  nivelDraft.value = nivel;
+  modal.value = { mode: 'nivel', nivel };
 }
 
-async function nuevoNivel() {
-  const nivel = prompt('Nombre del nuevo nivel (ej: Gerentes, Analistas, Supervisores)');
-  if (!nivel?.trim()) return;
+function nuevoNivel() {
+  nivelDraft.value = '';
+  modal.value = { mode: 'nivel', nivel: null };
+}
+
+async function guardarNivel() {
+  const v = nivelDraft.value.trim();
+  if (!v) return;
   try {
-    await post('/api/unidades', { nombre: nivel.trim(), tipo: nivel.trim().toLowerCase() });
+    const m = modal.value;
+    if (m.nivel) {
+      if (v === m.nivel) { modal.value = null; return; }
+      await Promise.all(porNivel(m.nivel).map((u) => put(`/api/unidades/${u.id}`, { tipo: v.toLowerCase() })));
+    } else {
+      await post('/api/unidades', { nombre: v, tipo: v.toLowerCase() });
+    }
+    modal.value = null;
     await cargar();
   } catch (err) {
     error.value = err.message;
@@ -177,6 +189,22 @@ onMounted(cargar);
           <label>CI <input :value="f.ci" @input="fmtCi" placeholder="V-12345678" inputmode="numeric" /></label>
           <label>Correo <input v-model="f.correo" type="email" /></label>
         </template>
+        <template v-else-if="modal.mode === 'nivel'">
+          <h2>{{ modal.nivel ? `Renombrar "${modal.nivel}"` : 'Nuevo nivel' }}</h2>
+          <label>Nombre del nivel <input v-model="nivelDraft" placeholder="Gerentes, Analistas, Supervisores" @keydown.enter="guardarNivel" /></label>
+          <div class="dialog-actions">
+            <button class="ghost" @click="modal = null">Cancelar</button>
+            <button class="primary" @click="guardarNivel">Guardar</button>
+          </div>
+        </template>
+        <template v-else-if="modal.mode === 'confirm'">
+          <h2>Eliminar "{{ modal.node.cargo || modal.node.nombre }}"</h2>
+          <p class="confirmtxt">Se eliminará el puesto{{ modal.node.hijos?.length ? ' y sus sub-unidades' : '' }}. Esta acción no se puede deshacer.</p>
+          <div class="dialog-actions">
+            <button class="ghost" @click="modal = null">Cancelar</button>
+            <button class="primary danger" @click="confirmarBorrar">Eliminar</button>
+          </div>
+        </template>
         <template v-else>
           <h2>Perfil de "{{ modal.node.cargo || modal.node.nombre }}"</h2>
           <label>Descripción del puesto <textarea v-model="p.descripcion" rows="3" placeholder="Funciones y alcance" /></label>
@@ -207,6 +235,8 @@ h1 { color: #14204a; margin: 0; }
 .sub { color: #6b7280; font-size: .9rem; margin: .3rem 0 0; }
 .primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: #1a56db; color: #fff; font-weight: 700; cursor: pointer; }
 .ghost { padding: .6rem 1.1rem; border: 1px solid #d4d9ea; border-radius: 9px; background: #fff; cursor: pointer; }
+.danger { background: #dc2626; }
+.confirmtxt { margin: 0; color: #6b7280; font-size: .85rem; }
 .error { color: #b42318; }
 .empty { color: #9aa3b5; font-size: .85rem; padding: .6rem 0; }
 .big { text-align: center; padding: 3rem 0; }
