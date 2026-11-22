@@ -1,60 +1,62 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { get, post, put, del } from '../api.js';
-import OrgNode from '../components/OrgNode.vue';
 import AppLayout from '../components/AppLayout.vue';
 
-const arbol = ref([]);
+const flat = ref([]);           // lista plana de unidades
 const error = ref('');
-const modal = ref(null);   // { mode: 'add'|'edit', parent?, node? }
-const nombre = ref('');
-const tipo = ref('gerencia');
-const descripcion = ref('');
-const competencias = ref('');   // texto separado por comas
-const habilidades = ref('');
-
-const toLista = (txt) => txt.split(',').map((s) => s.trim()).filter(Boolean);
-const tipos = ['gerencia', 'departamento', 'dirección', 'coordinación', 'unidad'];
+const modal = ref(null);        // { mode: 'card'|'perfil', nivel?, node? }
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 const esRrhh = user.rol === 'rrhh';
 
+// formulario tarjeta (puesto/persona)
+const f = ref({ nombre: '', cargo: '', nombre_apellido: '', ci: '', correo: '' });
+// formulario perfil (botón +)
+const p = ref({ descripcion: '', competencias: '', habilidades: '' });
+
+const toLista = (txt) => txt.split(',').map((s) => s.trim()).filter(Boolean);
+const niveles = computed(() => [...new Set(flat.value.map((u) => u.tipo))]);
+const porNivel = (nivel) => flat.value.filter((u) => u.tipo === nivel);
+
+function flatten(nodos, acc = []) {
+  for (const n of nodos) { acc.push(n); flatten(n.hijos ?? [], acc); }
+  return acc;
+}
+
 async function cargar() {
   const data = await get('/api/unidades');
-  arbol.value = data.unidades;
+  flat.value = flatten(data.unidades);
 }
 
-function abrirAdd(parent = null) {
-  modal.value = { mode: 'add', parent };
-  nombre.value = '';
-  tipo.value = 'gerencia';
-  descripcion.value = '';
-  competencias.value = '';
-  habilidades.value = '';
+function abrirCard(nivel, node = null) {
+  modal.value = { mode: 'card', nivel, node };
+  f.value = node
+    ? { nombre: node.nombre, cargo: node.cargo, nombre_apellido: node.nombre_apellido, ci: node.ci, correo: node.correo }
+    : { nombre: '', cargo: '', nombre_apellido: '', ci: '', correo: '' };
 }
 
-function abrirEdit(node) {
-  modal.value = { mode: 'edit', node };
-  nombre.value = node.nombre;
-  tipo.value = node.tipo;
-  descripcion.value = node.descripcion || '';
-  competencias.value = (node.competencias || []).join(', ');
-  habilidades.value = (node.habilidades || []).join(', ');
+function abrirPerfil(node) {
+  modal.value = { mode: 'perfil', node };
+  p.value = {
+    descripcion: node.descripcion || '',
+    competencias: (node.competencias || []).join(', '),
+    habilidades: (node.habilidades || []).join(', '),
+  };
 }
 
 async function guardar() {
   error.value = '';
   try {
-    const payload = {
-      nombre: nombre.value,
-      tipo: tipo.value,
-      descripcion: descripcion.value,
-      competencias: toLista(competencias.value),
-      habilidades: toLista(habilidades.value),
-    };
-    if (modal.value.mode === 'add') {
-      await post('/api/unidades', { ...payload, parent_id: modal.value.parent?.id ?? null });
+    if (modal.value.mode === 'card') {
+      const payload = { nombre: f.value.cargo || f.value.nombre, tipo: modal.value.nivel || modal.value.node?.tipo, ...f.value };
+      if (modal.value.node) await put(`/api/unidades/${modal.value.node.id}`, payload);
+      else await post('/api/unidades', payload);
     } else {
-      await put(`/api/unidades/${modal.value.node.id}`, payload);
+      await put(`/api/unidades/${modal.value.node.id}`, {
+        descripcion: p.value.descripcion,
+        competencias: toLista(p.value.competencias),
+        habilidades: toLista(p.value.habilidades),
+      });
     }
     modal.value = null;
     await cargar();
@@ -64,9 +66,29 @@ async function guardar() {
 }
 
 async function borrar(node) {
-  if (!confirm(`Eliminar "${node.nombre}" y todas sus sub-unidades?`)) return;
+  if (!confirm(`Eliminar "${node.cargo || node.nombre}"${node.hijos?.length ? ' y sus sub-unidades' : ''}?`)) return;
   try {
     await del(`/api/unidades/${node.id}`);
+    await cargar();
+  } catch (err) {
+    error.value = err.message;
+  }
+}
+
+// drag & drop entre niveles
+const dragId = ref(null);
+function onDrop(nivel) {
+  const node = flat.value.find((u) => u.id === dragId.value);
+  dragId.value = null;
+  if (!node || node.tipo === nivel) return;
+  put(`/api/unidades/${node.id}`, { tipo: nivel }).then(cargar).catch((e) => (error.value = e.message));
+}
+
+async function nuevoNivel() {
+  const nivel = prompt('Nombre del nuevo nivel (ej: Gerentes, Analistas, Supervisores)');
+  if (!nivel?.trim()) return;
+  try {
+    await post('/api/unidades', { nombre: nivel.trim(), tipo: nivel.trim().toLowerCase() });
     await cargar();
   } catch (err) {
     error.value = err.message;
@@ -81,37 +103,59 @@ onMounted(cargar);
     <header class="top">
       <div>
         <h1>Estructura organizacional</h1>
-        <p class="sub">Define las unidades de tu empresa: gerencias, departamentos, coordinaciones… como tú las llames.</p>
+        <p class="sub">Arrastra tarjetas entre niveles. El botón + de cada tarjeta define la descripción del puesto, competencias y habilidades.</p>
       </div>
-      <button v-if="esRrhh" class="primary" @click="abrirAdd(null)">+ Unidad raíz</button>
+      <button v-if="esRrhh" class="primary" @click="nuevoNivel">+ Nivel</button>
     </header>
     <p v-if="error" class="error">{{ error }}</p>
 
-    <section class="card">
-      <ul v-if="arbol.length" class="tree">
-        <OrgNode v-for="n in arbol" :key="n.id" :node="n" @add="abrirAdd" @edit="abrirEdit" @delete="borrar" />
-      </ul>
-      <p v-else class="empty">Aún no hay unidades. Crea la primera con “+ Unidad raíz”{{ esRrhh ? '' : ' (solo RRHH)' }}.</p>
+    <section v-for="nivel in niveles" :key="nivel" class="board-row"
+             @dragover.prevent @drop="onDrop(nivel)">
+      <div class="row-head">
+        <h2>{{ nivel }}</h2>
+        <button v-if="esRrhh" class="add" @click="abrirCard(nivel)">Agregar</button>
+      </div>
+      <div class="cards">
+        <article v-for="u in porNivel(nivel)" :key="u.id" class="post"
+                 :draggable="esRrhh" @dragstart="dragId = u.id">
+          <header>
+            <strong>{{ u.cargo || u.nombre }}</strong>
+            <button v-if="esRrhh" class="plus" title="Descripción, competencias y habilidades" @click="abrirPerfil(u)">+</button>
+          </header>
+          <p v-if="u.nombre_apellido">Nombre y Apellido: {{ u.nombre_apellido }}</p>
+          <p v-if="u.ci">CI: {{ u.ci }}</p>
+          <p v-if="u.correo">Correo: {{ u.correo }}</p>
+          <p v-if="u.descripcion" class="desc">{{ u.descripcion }}</p>
+          <div class="tags" v-if="u.competencias?.length || u.habilidades?.length">
+            <em v-for="c in u.competencias" :key="`c${c}`" class="tag comp">{{ c }}</em>
+            <em v-for="h in u.habilidades" :key="`h${h}`" class="tag hab">{{ h }}</em>
+          </div>
+          <footer v-if="esRrhh">
+            <button @click="abrirCard(nivel, u)">✎</button>
+            <button @click="borrar(u)">🗑</button>
+          </footer>
+        </article>
+        <p v-if="!porNivel(nivel).length" class="empty">Arrastra tarjetas aquí o usa “Agregar”.</p>
+      </div>
     </section>
+    <p v-if="!niveles.length" class="empty big">Aún no hay estructura. Crea un nivel con “+ Nivel”.</p>
 
     <div v-if="modal" class="overlay" @click.self="modal = null">
       <div class="dialog">
-        <h2>{{ modal.mode === 'add' ? `Nueva unidad${modal.parent ? ` en "${modal.parent.nombre}"` : ''}` : `Editar "${modal.node.nombre}"` }}</h2>
-        <label>Nombre <input v-model="nombre" required /></label>
-        <label>Tipo
-          <select v-model="tipo">
-            <option v-for="t in tipos" :key="t" :value="t">{{ t }}</option>
-          </select>
-        </label>
-        <label>Descripción del puesto
-          <textarea v-model="descripcion" rows="3" placeholder="Funciones y alcance del cargo" />
-        </label>
-        <label>Competencias <span class="hint">(separadas por coma — se enlazan a cursos)</span>
-          <input v-model="competencias" placeholder="Liderazgo, Seguridad industrial" />
-        </label>
-        <label>Habilidades
-          <input v-model="habilidades" placeholder="Excel, Gestión de equipos" />
-        </label>
+        <template v-if="modal.mode === 'card'">
+          <h2>{{ modal.node ? 'Editar puesto' : `Nuevo puesto en "${modal.nivel}"` }}</h2>
+          <label>Cargo <input v-model="f.cargo" placeholder="Gerente de Operaciones" /></label>
+          <label>Nombre y Apellido <input v-model="f.nombre_apellido" /></label>
+          <label>CI <input v-model="f.ci" placeholder="V-12345678" /></label>
+          <label>Correo <input v-model="f.correo" type="email" /></label>
+        </template>
+        <template v-else>
+          <h2>Perfil de "{{ modal.node.cargo || modal.node.nombre }}"</h2>
+          <label>Descripción del puesto <textarea v-model="p.descripcion" rows="3" placeholder="Funciones y alcance" /></label>
+          <label>Competencias <span class="hint">(coma — enlazan a cursos)</span>
+            <input v-model="p.competencias" placeholder="Liderazgo, Seguridad" /></label>
+          <label>Habilidades <input v-model="p.habilidades" placeholder="Excel, Gestión de equipos" /></label>
+        </template>
         <div class="dialog-actions">
           <button class="ghost" @click="modal = null">Cancelar</button>
           <button class="primary" @click="guardar">Guardar</button>
@@ -127,16 +171,38 @@ h1 { color: #14204a; margin: 0; }
 .sub { color: #6b7280; font-size: .9rem; margin: .3rem 0 0; }
 .primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: #1a56db; color: #fff; font-weight: 700; cursor: pointer; }
 .ghost { padding: .6rem 1.1rem; border: 1px solid #d4d9ea; border-radius: 9px; background: #fff; cursor: pointer; }
-.card { background: #fff; border-radius: 14px; padding: 1.5rem; box-shadow: 0 6px 24px rgba(15,30,80,.08); margin-top: 1.5rem; }
-.tree { margin: 0; padding: 0; }
-.empty { color: #6b7280; text-align: center; padding: 2rem 0; }
 .error { color: #b42318; }
-.overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; }
-.dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 340px; display: flex; flex-direction: column; gap: 1rem; }
+.empty { color: #9aa3b5; font-size: .85rem; padding: .6rem 0; }
+.big { text-align: center; padding: 3rem 0; }
+
+.board-row { margin-top: 1.5rem; }
+.row-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #c9d2e8; padding-bottom: .4rem; }
+.row-head h2 { margin: 0; font-size: 1rem; color: #14204a; text-transform: capitalize; }
+.add { padding: .4rem 1.2rem; border: 0; border-radius: 999px; background: #3d5bf0; color: #fff; font-weight: 700; font-size: .85rem; cursor: pointer; }
+
+.cards { display: flex; flex-wrap: wrap; gap: .9rem; padding: .9rem 0; }
+.post {
+  background: #fff; border-radius: 14px; padding: 1rem 1.1rem; min-width: 200px; max-width: 260px;
+  box-shadow: 0 4px 16px rgba(15,30,80,.1); cursor: grab; display: flex; flex-direction: column; gap: .25rem;
+}
+.post:active { cursor: grabbing; }
+.post header { display: flex; justify-content: space-between; align-items: center; }
+.post strong { color: #14204a; font-size: .95rem; }
+.plus { border: 0; background: #3d5bf0; color: #fff; width: 26px; height: 26px; border-radius: 50%; font-size: 1rem; cursor: pointer; line-height: 1; }
+.post p { margin: 0; font-size: .8rem; color: #4b5563; }
+.post .desc { color: #6b7280; font-size: .78rem; }
+.tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem; }
+.tag { font-style: normal; font-size: .68rem; padding: .1rem .5rem; border-radius: 999px; font-weight: 600; }
+.comp { background: #fdf3e3; color: #b45309; }
+.hab { background: #e8f7ee; color: #166534; }
+.post footer { display: flex; gap: .3rem; margin-top: .5rem; }
+.post footer button { border: 0; background: #eef1f7; border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
+
+.overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 360px; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; }
 .dialog h2 { margin: 0; font-size: 1.05rem; color: #14204a; }
 .dialog label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: #374151; }
 .dialog input, .dialog select, .dialog textarea { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
-.dialog { max-height: 90vh; overflow-y: auto; }
-.hint { font-weight: 400; color: #9aa3b5; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+.hint { font-weight: 400; color: #9aa3b5; }
 </style>
