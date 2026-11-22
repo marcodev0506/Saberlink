@@ -14,6 +14,7 @@ import EvalView from './views/EvalView.vue';
 import EvaluacionesView from './views/EvaluacionesView.vue';
 import CambiarPasswordView from './views/CambiarPasswordView.vue';
 import VerificarView from './views/VerificarView.vue';
+import CertificadosView from './views/CertificadosView.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -27,6 +28,7 @@ const router = createRouter({
     { path: '/cursos', component: CoursesView, meta: { auth: true } },
     { path: '/catalogo', component: CatalogoView, meta: { auth: true } },
     { path: '/evaluaciones', component: EvaluacionesView, meta: { auth: true } },
+    { path: '/certificados', component: CertificadosView, meta: { auth: true } },
     { path: '/cursos/:id', component: CourseView, meta: { auth: true } },
     { path: '/cursos/:id/evaluacion', component: EvalView, meta: { auth: true } },
     { path: '/cambiar-password', component: CambiarPasswordView, meta: { auth: true } },

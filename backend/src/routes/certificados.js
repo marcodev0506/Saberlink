@@ -8,14 +8,16 @@ const router = Router();
 
 // Lista de certificados de la empresa (menú Evaluaciones)
 router.get('/', requireAuth, async (req, res) => {
+  // Trabajador ve solo los suyos; rrhh/gestor ven todos los de la empresa
   const { rows } = await pool.query(
     `SELECT ce.codigo, ce.puntaje, ce.total, ce.created_at,
-            u.nombre AS estudiante, c.titulo AS curso
+            u.nombre AS estudiante, c.titulo AS curso, c.duracion
      FROM certificados ce
      JOIN usuarios u ON u.id = ce.usuario_id
      JOIN cursos c ON c.id = ce.curso_id
-     WHERE ce.empresa_id = $1 ORDER BY ce.created_at DESC`,
-    [req.user.empresa_id]
+     WHERE ce.empresa_id = $1 AND ($2::uuid IS NULL OR ce.usuario_id = $2)
+     ORDER BY ce.created_at DESC`,
+    [req.user.empresa_id, req.user.rol === 'trabajador' ? req.user.sub : null]
   );
   res.json({ certificados: rows });
 });

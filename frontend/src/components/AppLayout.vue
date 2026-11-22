@@ -29,6 +29,7 @@ const links = computed(() => {
   if (user.value?.rol === 'rrhh' || user.value?.rol === 'gestor_curso') {
     l.push({ to: '/evaluaciones', label: 'Evaluaciones' });
   }
+  l.push({ to: '/certificados', label: user.value?.rol === 'trabajador' ? 'Mis certificados' : 'Certificados' });
   return l;
 });
 

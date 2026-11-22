@@ -32,10 +32,10 @@ onMounted(async () => {
           <h3>Cursos</h3>
           <p>Catálogo de cursos — el gestor de curso sube el PDF y la IA genera guion, evaluaciones y audio.</p>
         </router-link>
-        <div class="card disabled" style="animation-delay: .35s">
+        <router-link to="/certificados" class="card" style="animation-delay: .35s">
           <h3>Certificados</h3>
-          <p>Acreditaciones PDF con código QR — próximamente.</p>
-        </div>
+          <p>Acreditaciones PDF con código QR — descargables y verificables.</p>
+        </router-link>
       </div>
     </template>
   </AppLayout>
