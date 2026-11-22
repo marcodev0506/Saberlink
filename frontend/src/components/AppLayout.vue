@@ -26,6 +26,9 @@ const links = computed(() => {
     l.push({ to: '/estructura', label: 'Estructura' });
   }
   l.push({ to: '/cursos', label: 'Cursos', hijos: [{ to: '/cursos', label: 'Todos los cursos' }, { to: '/catalogo', label: 'Catálogo' }] });
+  if (user.value?.rol === 'rrhh' || user.value?.rol === 'gestor_curso') {
+    l.push({ to: '/evaluaciones', label: 'Evaluaciones' });
+  }
   return l;
 });
 

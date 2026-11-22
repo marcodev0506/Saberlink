@@ -102,8 +102,11 @@ onMounted(cargar);
       </p>
     </section>
 
-    <button v-if="evaluaciones.length" class="evalbtn" @click="$router.push(`/cursos/${route.params.id}/evaluacion`)">
-      ▸ Presentar evaluación
+    <button v-if="evaluaciones.length" class="evalbtn" @click="$router.push(`/cursos/${route.params.id}/evaluacion?tipo=teorica`)">
+      ▸ Presentar evaluación teórica
+    </button>
+    <button v-if="evaluaciones.length" class="evalbtn prac" @click="$router.push(`/cursos/${route.params.id}/evaluacion?tipo=practica`)">
+      ▸ Presentar evaluación práctica
     </button>
   </AppLayout>
 </template>
@@ -139,7 +142,8 @@ h1 { color: var(--navy); margin: .3rem 0 0; }
 .unidad p { color: #4b5563; font-size: .85rem; line-height: 1.5; }
 .play { border: 0; background: var(--navy); color: #fff; padding: .45rem 1.1rem; border-radius: 999px; font-weight: 700; font-size: .82rem; cursor: pointer; }
 
-.evalbtn { margin-top: 1.6rem; border: 0; background: var(--navy); color: #fff; padding: .7rem 1.4rem; border-radius: 999px; font-weight: 700; font-size: .9rem; cursor: pointer; }
+.evalbtn { margin-top: 1.6rem; margin-right: .6rem; border: 0; background: var(--navy); color: #fff; padding: .7rem 1.4rem; border-radius: 999px; font-weight: 700; font-size: .9rem; cursor: pointer; }
+.evalbtn.prac { background: var(--orange); }
 .evals { margin-top: 1.2rem; }
 .evals h2 { color: var(--navy); font-size: 1.05rem; }
 .eval { background: #fff; border-radius: 12px; padding: 1rem 1.2rem; margin-top: .7rem; box-shadow: 0 3px 12px rgba(15,30,80,.08); }

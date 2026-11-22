@@ -86,10 +86,12 @@ CREATE TABLE IF NOT EXISTS intentos (
   puntaje     INT NOT NULL DEFAULT 0,
   total       INT NOT NULL DEFAULT 0,
   aprobado    BOOLEAN NOT NULL DEFAULT false,
-  tipo        TEXT NOT NULL DEFAULT 'final' CHECK (tipo IN ('diagnostico','final')),
+  tipo        TEXT NOT NULL DEFAULT 'final' CHECK (tipo IN ('diagnostico','teorica','practica','final')),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-ALTER TABLE intentos ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'final' CHECK (tipo IN ('diagnostico','final'));
+ALTER TABLE intentos ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'final';
+ALTER TABLE intentos DROP CONSTRAINT IF EXISTS intentos_tipo_check;
+ALTER TABLE intentos ADD CONSTRAINT intentos_tipo_check CHECK (tipo IN ('diagnostico','teorica','practica','final'));
 
 ALTER TABLE cursos ADD COLUMN IF NOT EXISTS habilidades JSONB NOT NULL DEFAULT '[]'::jsonb;
 

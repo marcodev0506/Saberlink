@@ -19,6 +19,24 @@ router.get('/', async (req, res) => {
   res.json({ cursos: rows });
 });
 
+// Resultados de evaluaciones de toda la empresa (para el menú Evaluaciones)
+// IMPORTANTE: debe ir antes de '/:id' para que Express no lo confunda con un id.
+router.get('/resultados', async (req, res) => {
+  if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
+  const { rows } = await pool.query(
+    `SELECT i.id, i.puntaje, i.total, i.aprobado, i.tipo, i.created_at,
+            u.nombre AS estudiante, u.id AS usuario_id,
+            c.titulo AS curso, c.id AS curso_id
+     FROM intentos i
+     JOIN usuarios u ON u.id = i.usuario_id
+     JOIN cursos c ON c.id = i.curso_id
+     WHERE c.empresa_id = $1
+     ORDER BY i.created_at DESC`,
+    [req.user.empresa_id]
+  );
+  res.json({ resultados: rows });
+});
+
 router.get('/:id', async (req, res) => {
   const { rows: [c] } = await pool.query(
     `SELECT c.id, c.titulo, c.objetivo, c.estado, c.evaluaciones, c.guion, c.imagen_path, u.nombre AS facilitador
@@ -168,7 +186,7 @@ router.put('/:id', async (req, res) => {
 // El trabajador presenta la evaluación y se guarda el intento
 router.post('/:id/evaluacion', async (req, res) => {
   const { respuestas, tipo } = req.body ?? {};
-  const t = tipo === 'diagnostico' ? 'diagnostico' : 'final';
+  const t = ['diagnostico', 'teorica', 'practica'].includes(tipo) ? tipo : 'teorica';
   const { rows: [c] } = await pool.query(
     'SELECT id, evaluaciones FROM cursos WHERE id = $1 AND empresa_id = $2',
     [req.params.id, req.user.empresa_id]

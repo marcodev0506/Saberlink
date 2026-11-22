@@ -12,7 +12,8 @@ const error = ref('');
 const enviado = ref(false);
 const puntaje = ref(null);
 const aprobado = ref(false);
-const tipo = route.query.tipo === 'diagnostico' ? 'diagnostico' : 'final';
+const tipo = ['diagnostico', 'teorica', 'practica'].includes(route.query.tipo) ? route.query.tipo : 'teorica';
+const tipoTitulo = { diagnostico: 'Evaluación diagnóstica', teorica: 'Evaluación teórica', practica: 'Evaluación práctica' }[tipo];
 
 async function cargar() {
   try {
@@ -42,7 +43,7 @@ onMounted(cargar);
   <AppLayout>
     <router-link :to="`/cursos/${route.params.id}`" class="back">← Volver al curso</router-link>
     <header class="top" v-if="curso">
-      <h1>{{ tipo === 'diagnostico' ? 'Evaluación diagnóstica' : 'Evaluación' }} — {{ curso.titulo }}</h1>
+      <h1>{{ tipoTitulo }} — {{ curso.titulo }}</h1>
       <p class="sub">{{ evaluaciones.length }} preguntas</p>
     </header>
     <p v-if="error" class="error">{{ error }}</p>

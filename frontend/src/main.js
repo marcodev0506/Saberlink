@@ -11,6 +11,7 @@ import CoursesView from './views/CoursesView.vue';
 import CatalogoView from './views/CatalogoView.vue';
 import CourseView from './views/CourseView.vue';
 import EvalView from './views/EvalView.vue';
+import EvaluacionesView from './views/EvaluacionesView.vue';
 import CambiarPasswordView from './views/CambiarPasswordView.vue';
 
 const router = createRouter({
@@ -24,6 +25,7 @@ const router = createRouter({
     { path: '/estructura', component: OrgView, meta: { auth: true } },
     { path: '/cursos', component: CoursesView, meta: { auth: true } },
     { path: '/catalogo', component: CatalogoView, meta: { auth: true } },
+    { path: '/evaluaciones', component: EvaluacionesView, meta: { auth: true } },
     { path: '/cursos/:id', component: CourseView, meta: { auth: true } },
     { path: '/cursos/:id/evaluacion', component: EvalView, meta: { auth: true } },
     { path: '/cambiar-password', component: CambiarPasswordView, meta: { auth: true } },
