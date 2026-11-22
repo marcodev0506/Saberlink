@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { get, post } from '../api.js';
+import AppLayout from '../components/AppLayout.vue';
 
 const usuarios = ref([]);
 const nombre = ref('');
@@ -37,7 +38,7 @@ onMounted(cargar);
 </script>
 
 <template>
-  <main class="page">
+  <AppLayout>
     <h1>Usuarios de la empresa</h1>
 
     <section class="card">
@@ -74,11 +75,10 @@ onMounted(cargar);
         </tbody>
       </table>
     </section>
-  </main>
+  </AppLayout>
 </template>
 
 <style scoped>
-.page { max-width: 760px; margin: 3rem auto; padding: 0 1rem; font-family: 'Inter', system-ui, sans-serif; }
 h1 { color: #14204a; }
 .card { background: #fff; border-radius: 14px; padding: 1.5rem; box-shadow: 0 6px 24px rgba(15,30,80,.08); margin-top: 1.5rem; }
 h2 { font-size: 1rem; margin: 0 0 1rem; }

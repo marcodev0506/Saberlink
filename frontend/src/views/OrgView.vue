@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { get, post, put, del } from '../api.js';
 import OrgNode from '../components/OrgNode.vue';
+import AppLayout from '../components/AppLayout.vue';
 
 const arbol = ref([]);
 const error = ref('');
@@ -58,7 +59,7 @@ onMounted(cargar);
 </script>
 
 <template>
-  <main class="page">
+  <AppLayout>
     <header class="top">
       <div>
         <h1>Estructura organizacional</h1>
@@ -90,11 +91,10 @@ onMounted(cargar);
         </div>
       </div>
     </div>
-  </main>
+  </AppLayout>
 </template>
 
 <style scoped>
-.page { max-width: 860px; margin: 3rem auto; padding: 0 1rem; font-family: 'Inter', system-ui, sans-serif; }
 .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 h1 { color: #14204a; margin: 0; }
 .sub { color: #6b7280; font-size: .9rem; margin: .3rem 0 0; }
