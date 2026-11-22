@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   const { rows: [c] } = await pool.query(
-    `SELECT c.id, c.titulo, c.objetivo, c.estado, c.evaluaciones, c.guion, u.nombre AS facilitador
+    `SELECT c.id, c.titulo, c.objetivo, c.estado, c.evaluaciones, c.guion, c.imagen_path, u.nombre AS facilitador
      FROM cursos c LEFT JOIN usuarios u ON u.id = c.facilitador_id
      WHERE c.id = $1 AND c.empresa_id = $2`, [req.params.id, req.user.empresa_id]
   );
