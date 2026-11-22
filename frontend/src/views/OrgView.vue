@@ -32,8 +32,10 @@ async function enviarChat() {
 function fmtCi(e) { f.value.ci = 'V-' + e.target.value.replace(/[^0-9]/g, ''); }
 
 async function cargar() {
-  const data = await get('/api/unidades');
-  arbol.value = data.unidades;
+  try {
+    const data = await get('/api/unidades');
+    arbol.value = data.unidades;
+  } catch (e) { error.value = e.message; }
 }
 
 function toggle(id) {
