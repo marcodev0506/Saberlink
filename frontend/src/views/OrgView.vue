@@ -129,13 +129,17 @@ onMounted(cargar);
             <strong>{{ u.cargo || u.nombre }}</strong>
             <button v-if="esRrhh" class="plus" title="Descripción, competencias y habilidades" @click="abrirPerfil(u)">+</button>
           </header>
-          <p v-if="u.nombre_apellido">Nombre y Apellido: {{ u.nombre_apellido }}</p>
-          <p v-if="u.ci">CI: {{ u.ci }}</p>
-          <p v-if="u.correo">Correo: {{ u.correo }}</p>
-          <p v-if="u.descripcion" class="desc">{{ u.descripcion }}</p>
-          <div class="tags" v-if="u.competencias?.length || u.habilidades?.length">
-            <em v-for="c in u.competencias" :key="`c${c}`" class="tag comp">{{ c }}</em>
-            <em v-for="h in u.habilidades" :key="`h${h}`" class="tag hab">{{ h }}</em>
+          <p v-if="u.nombre_apellido"><b>Nombre:</b> {{ u.nombre_apellido }}</p>
+          <p v-if="u.ci"><b>CI:</b> {{ u.ci }}</p>
+          <p v-if="u.correo"><b>Correo:</b> {{ u.correo }}</p>
+          <p v-if="u.descripcion" class="desc"><b>Descripción:</b> {{ u.descripcion }}</p>
+          <div class="group" v-if="u.competencias?.length">
+            <b class="lbl comp-l">Competencias</b>
+            <div class="tags"><em v-for="c in u.competencias" :key="`c${c}`" class="tag comp">{{ c }}</em></div>
+          </div>
+          <div class="group" v-if="u.habilidades?.length">
+            <b class="lbl hab-l">Habilidades</b>
+            <div class="tags"><em v-for="h in u.habilidades" :key="`h${h}`" class="tag hab">{{ h }}</em></div>
           </div>
           <footer v-if="esRrhh">
             <button @click="abrirCard(nivel, u)">✎</button>
@@ -205,8 +209,13 @@ h1 { color: #14204a; margin: 0; }
 .post strong { color: #14204a; font-size: .95rem; }
 .plus { border: 0; background: #3d5bf0; color: #fff; width: 26px; height: 26px; border-radius: 50%; font-size: 1rem; cursor: pointer; line-height: 1; }
 .post p { margin: 0; font-size: .8rem; color: #4b5563; }
+.post p b { color: #374151; }
 .post .desc { color: #6b7280; font-size: .78rem; }
-.tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem; }
+.group { margin-top: .35rem; }
+.lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .03em; }
+.comp-l { color: #b45309; }
+.hab-l { color: #166534; }
+.tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .2rem; }
 .tag { font-style: normal; font-size: .68rem; padding: .1rem .5rem; border-radius: 999px; font-weight: 600; }
 .comp { background: #fdf3e3; color: #b45309; }
 .hab { background: #e8f7ee; color: #166534; }
