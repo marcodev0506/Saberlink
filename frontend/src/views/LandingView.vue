@@ -30,10 +30,10 @@ if (localStorage.getItem('token')) router.replace('/inicio');
         <div class="hex h1 orange"></div>
         <div class="hex h2 peach"></div>
         <div class="hex h3 navy"></div>
-        <div class="hex h4 cream"></div>
         <div class="hex h5 orange"></div>
         <div class="hex h6 navy"></div>
         <div class="hex h7 peach"></div>
+        <img class="avatar" src="/avatar.jpg" alt="Avatar Saberlink" />
       </div>
     </section>
 
@@ -95,6 +95,11 @@ if (localStorage.getItem('token')) router.replace('/inicio');
 .h5 { top: 114px; left: 264px; }
 .h6 { top: 228px; left: 66px; }
 .h7 { top: 228px; left: 198px; }
+.avatar {
+  position: absolute; top: 114px; left: 132px; width: 132px; height: 150px;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  object-fit: cover;
+}
 
 .beneficios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; padding: 3rem 4rem; background: var(--navy); }
 .b { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 1.4rem; }
