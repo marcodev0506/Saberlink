@@ -12,6 +12,7 @@ const error = ref('');
 const ok = ref('');
 const loading = ref(false);
 const importMsg = ref('');
+const importando = ref(false);
 const tab = ref('registro');
 const pagina = ref(0);
 const POR_PAGINA = 10;
@@ -23,13 +24,14 @@ async function importar(ev) {
   if (!f) return;
   const buf = await f.arrayBuffer();
   const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-  error.value = ''; importMsg.value = '';
+  error.value = ''; importMsg.value = ''; importando.value = true;
   try {
     const r = await post('/api/usuarios/importar', { archivo_base64: b64, archivo_nombre: f.name });
     importMsg.value = `${r.creados} usuarios creados${r.omitidos ? `, ${r.omitidos} ya existían` : ''}${r.errores.length ? `, ${r.errores.length} errores` : ''} — contraseña inicial: ${r.password_default}`;
     if (r.errores.length) importMsg.value += ` (${r.errores.join('; ')})`;
     await cargar();
   } catch (err) { error.value = err.message; }
+  finally { importando.value = false; }
   ev.target.value = '';
 }
 
@@ -90,8 +92,9 @@ onMounted(cargar);
     <section class="card" v-show="tab === 'plantilla'">
       <h2>Importar desde Excel</h2>
       <p class="hint">Sube la <a href="/plantilla_usuarios.xlsx" download>📄 plantilla</a> con columnas <b>nombre</b>, <b>correo</b> y <b>rol</b> (trabajador / experto / rrhh). Todos entran con contraseña <b>Saberlink123</b> y la cambian al primer inicio de sesión.</p>
-      <input type="file" accept=".xlsx,.xls,.csv" @change="importar" />
-      <p v-if="importMsg" class="ok">{{ importMsg }}</p>
+      <input type="file" accept=".xlsx,.xls,.csv" :disabled="importando" @change="importar" />
+      <p v-if="importando" class="loading"><span class="spinner" /> Importando usuarios…</p>
+      <p v-else-if="importMsg" class="ok">{{ importMsg }}</p>
     </section>
 
     <section class="card" v-show="tab === 'lista'">
@@ -125,6 +128,9 @@ h1 { color: var(--navy); }
 .pager { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; font-size: .85rem; color: var(--navy); font-weight: 600; }
 .pager button { padding: .45rem 1rem; border: 0; border-radius: 8px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
 .pager button:disabled { opacity: .4; cursor: default; }
+.loading { display: flex; align-items: center; gap: .5rem; color: var(--navy); font-weight: 600; font-size: .85rem; }
+.spinner { width: 16px; height: 16px; border: 2px solid #e8dcc4; border-top-color: var(--navy); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .card { background: #fff; border-radius: 14px; padding: 1.5rem; box-shadow: 0 6px 24px rgba(15,30,80,.08); margin-top: 1.5rem; }
 h2 { font-size: 1rem; margin: 0 0 1rem; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
