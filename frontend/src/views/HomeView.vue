@@ -19,46 +19,77 @@ onMounted(async () => {
       <h1 class="title">Hola, {{ user.nombre }}</h1>
       <p class="sub">{{ user.empresa }} · {{ user.rif }} · rol {{ user.rol }}</p>
 
-      <div class="cards">
-        <router-link v-if="user.rol === 'rrhh'" to="/estructura" class="card" style="animation-delay: .05s">
-          <h3>Estructura organizacional</h3>
-          <p>Define gerencias, departamentos y unidades de tu empresa en un árbol editable.</p>
-        </router-link>
-        <router-link v-if="user.rol === 'rrhh'" to="/usuarios" class="card" style="animation-delay: .15s">
-          <h3>Usuarios</h3>
-          <p>Invita trabajadores y gestores de curso, asígnales roles dentro de tu empresa.</p>
-        </router-link>
-        <router-link to="/cursos" class="card" style="animation-delay: .25s">
-          <h3>Cursos</h3>
-          <p>Catálogo de cursos — el gestor de curso sube el PDF y la IA genera guion, evaluaciones y audio.</p>
-        </router-link>
-        <router-link to="/certificados" class="card" style="animation-delay: .35s">
-          <h3>Certificados</h3>
-          <p>Acreditaciones PDF con código QR — descargables y verificables.</p>
-        </router-link>
+      <div class="bento">
+        <div class="left">
+          <img class="avatar" src="/avatar.jpg" alt="Saberlink" />
+        </div>
+
+        <div class="bloques">
+          <router-link v-if="user.rol === 'rrhh'" to="/estructura" class="bloque" style="animation-delay:.05s">
+            <b>Estructura</b>
+            <span>organizacional</span>
+            <p>Árbol de gerencias, departamentos y cargos editable.</p>
+          </router-link>
+          <router-link to="/cursos" class="bloque" style="animation-delay:.15s">
+            <b>Cursos</b>
+            <span>catálogo y estudio</span>
+            <p>La IA genera guion, unidades, evaluaciones y audio.</p>
+          </router-link>
+          <router-link v-if="user.rol === 'rrhh'" to="/usuarios" class="bloque" style="animation-delay:.25s">
+            <b>Usuarios</b>
+            <span>equipo</span>
+            <p>Invita trabajadores y gestores con sus roles.</p>
+          </router-link>
+          <router-link to="/certificados" class="bloque" style="animation-delay:.35s">
+            <b>Certificados</b>
+            <span>acreditación</span>
+            <p>PDF con QR único, verificable públicamente.</p>
+          </router-link>
+          <router-link v-if="user.rol !== 'trabajador'" to="/evaluaciones" class="bloque" style="animation-delay:.45s">
+            <b>Reportes</b>
+            <span>evaluaciones</span>
+            <p>Resultados diagnósticos, teóricos y prácticos por estudiante y por curso.</p>
+          </router-link>
+        </div>
       </div>
     </template>
   </AppLayout>
 </template>
 
 <style scoped>
-.title { color: var(--navy); margin: 0 0 .25rem; }
+.title { color: var(--navy); margin: 0 0 .25rem; font-size: 1.9rem; }
 .sub { color: #6b7280; margin: 0 0 1.75rem; font-size: .9rem; }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
-.card {
-  background: #fff; border-radius: 14px; padding: 1.4rem;
-  box-shadow: 0 6px 24px rgba(15,30,80,.08); text-decoration: none;
+
+.bento { display: grid; grid-template-columns: 340px 1fr; gap: 1.2rem; }
+.left {
+  border-radius: 20px; overflow: hidden; min-height: 420px;
+  background: var(--navy); position: relative;
+}
+.left .avatar { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+
+.bloques { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; align-content: start; }
+.bloque {
+  background: var(--orange); color: #fff; border-radius: 20px; padding: 1.8rem 1.6rem;
+  min-height: 190px; display: flex; flex-direction: column; justify-content: flex-end;
+  text-decoration: none; box-shadow: 0 10px 26px rgba(15,30,80,.12);
   transition: transform .18s cubic-bezier(.34,1.4,.64,1), box-shadow .15s;
   animation: card-pop .5s cubic-bezier(.34,1.35,.64,1) both;
 }
+.bloque b { font-size: 1.8rem; line-height: 1.05; }
+.bloque span { font-size: .95rem; font-weight: 600; opacity: .9; }
+.bloque p { margin: .7rem 0 0; font-size: .82rem; line-height: 1.45; opacity: .92; }
 @keyframes card-pop {
   0% { opacity: 0; transform: translateY(14px) scale(.96); }
   60% { opacity: 1; transform: translateY(-3px) scale(1.01); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-.card:hover:not(.disabled) { transform: translateY(-4px) scale(1.02); box-shadow: 0 12px 32px rgba(15,30,80,.16); }
-.card:not(.disabled):active { transform: translateY(0) scale(.99); }
-.card h3 { margin: 0 0 .4rem; color: var(--navy); font-size: 1rem; }
-.card p { margin: 0; color: #6b7280; font-size: .85rem; line-height: 1.4; }
-.disabled { opacity: .55; cursor: default; }
+.bloque:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 16px 36px rgba(15,30,80,.2); }
+.bloque:active { transform: scale(.99); }
+
+@media (max-width: 1100px) {
+  .bento { grid-template-columns: 1fr; }
+  .left { min-height: 300px; }
+  .bloques { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) { .bloques { grid-template-columns: 1fr; } }
 </style>
