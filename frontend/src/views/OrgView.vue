@@ -142,7 +142,7 @@ onMounted(cargar);
         <template v-else>
           <h2>Perfil de "{{ modal.node.cargo || modal.node.nombre }}"</h2>
           <label>Descripción del puesto <textarea v-model="p.descripcion" rows="3" placeholder="Funciones y alcance" /></label>
-          <div class="tagfield" v-for="campo in ['competencias','habilidades']" :key="campo">
+          <div class="tagfield" v-for="campo in ['habilidades','competencias']" :key="campo">
             <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }}
               <span class="hint">(del banco central — enlazan a cursos)</span></label>
             <TagSelect :tipo="campo === 'competencias' ? 'competencia' : 'habilidad'" v-model="p[campo]" />

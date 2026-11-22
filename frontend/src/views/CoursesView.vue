@@ -139,7 +139,7 @@ onMounted(cargar);
         <label>Imagen del curso <input type="file" accept="image/*" @change="onImg" /></label>
         <label>Título <input v-model="f.titulo" placeholder="Inducción de seguridad" /></label>
         <label>Objetivo general <textarea v-model="f.objetivo" rows="2" /></label>
-        <div class="tagfield" v-for="campo in ['competencias','habilidades']" :key="campo">
+        <div class="tagfield" v-for="campo in ['habilidades','competencias']" :key="campo">
           <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }} <span class="hint">(del banco central)</span></label>
           <TagSelect :tipo="campo === 'competencias' ? 'competencia' : 'habilidad'" v-model="tags[campo]" />
         </div>
