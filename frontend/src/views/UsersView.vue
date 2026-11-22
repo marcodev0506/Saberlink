@@ -166,7 +166,7 @@ h1 { color: var(--navy); }
 .bulk button { padding: .45rem 1rem; border: 0; border-radius: 8px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
 .bulk button.warn { background: var(--danger); }
 .chip[data-activo='false'] { background: #f8d7d5; color: var(--danger); }
-tr.inactivo td { opacity: .55; }
+tr.inactivo td { opacity: .7; }
 .loading { display: flex; align-items: center; gap: .5rem; color: var(--navy); font-weight: 600; font-size: .85rem; }
 .spinner { width: 16px; height: 16px; border: 2px solid #e8dcc4; border-top-color: var(--navy); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -178,7 +178,7 @@ input, select { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px
 button { grid-column: 1 / -1; padding: .7rem; border: 0; border-radius: 8px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
 table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 th { text-align: left; color: #6b7280; font-size: .78rem; text-transform: uppercase; padding: .4rem .5rem; }
-td { padding: .55rem .5rem; border-top: 1px solid var(--cream); }
+td { padding: .55rem .5rem; border-top: 1px solid var(--cream); color: #1f2937; font-weight: 500; }
 .chip { padding: .15rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 700; background: #eef2ff; color: var(--navy); }
 .chip[data-rol='experto'] { background: #fdeee3; color: var(--orange); }
 .chip[data-rol='trabajador'] { background: #dde6f0; color: var(--navy); }
