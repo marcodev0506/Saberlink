@@ -58,32 +58,66 @@ router.post('/chat', requireRrhh, async (req, res) => {
   if (!texto?.trim()) return res.status(400).json({ error: 'Falta el texto' });
 
   const cap = (s) => s.trim().replace(/\b\w/g, (c) => c.toUpperCase());
-  const sing = (s) => s.trim().replace(/e?s$/i, '').replace(/([aeiou])(n|s)$/i, '$1$2');
-
-  // patrón: "<raíz> con N <hijosA> [y cada <hijoA> M <hijosB> [y cada <hijoB> K <hijosC>]]"
-  const m = texto.trim().match(
-    /^(?:quiero\s+crear\s+|crea\s+|crear\s+)?(?:una?\s+)?(.+?)\s+con\s+(\d+)\s+([a-záéíóúñ ]+?)(?:\s+y\s+cada\s+[\wáéíóúñ ]+?\s+(\d+)\s+([a-záéíóúñ ]+?)(?:\s+y\s+cada\s+[\wáéíóúñ ]+?\s+(\d+)\s+([a-záéíóúñ ]+?))?)?[.\s]*$/i
-  );
-
-  function hijos(nombre, cantidad, sub) {
+  const sing = (s) => s.trim().replace(/^(?:un|una)\s+/i, '').replace(/(ces|es|e|s)$/i, '');
+  const NUM = { un: 1, una: 1 };
+  const tipoDe = (s) => (/gerencia|presidencia|direcci/i.test(s) ? 'gerencia' : 'unidad');
+  const mk = (nombre, cantidad, hijos = []) => {
     const base = cap(sing(nombre));
     return Array.from({ length: cantidad }, (_, i) => ({
-      nombre: cantidad > 1 ? `${base} ${i + 1}` : base,
-      tipo: 'unidad',
-      hijos: sub ?? [],
+      nombre: cantidad > 1 ? `${base} ${i + 1}` : base, tipo: tipoDe(base), hijos,
     }));
-  }
-  function nivel(nombre, cantidad, resto) {
-    if (!resto) return hijos(nombre, cantidad);
-    return hijos(nombre, cantidad).map((h) => ({ ...h, hijos: nivel(resto[1], resto[0], resto[2]) }));
+  };
+
+  // Un ítem: [N | un | una] nombre   -> nodo(s)
+  function parseItem(t) {
+    const m = t.trim().match(/^(?:(\d+|un|una)\s+)?(.+)$/i);
+    if (!m) return null;
+    return { nombre: m[2], cantidad: m[1] ? (NUM[m[1].toLowerCase()] ?? Number(m[1])) : 1 };
   }
 
+  // Lista de ítems separados por "," o " y " (pero no "cada" ni "dentro")
+  function parseLista(t) {
+    return t.split(/\s*,\s*|\s+y\s+/i).map(parseItem).filter(Boolean);
+  }
+
+  // Determinístico: "<raíz> con <lista> [y cada X N hijos] [, y dentro de X <lista>]…"
+  const txt = texto.trim().replace(/^(?:quiero\s+crear\s+|crea(?:r)?\s+)/i, '');
+  const partes = txt.split(/\s*(?:,|\.)?\s*y?\s*dentro\s+de\s+/i);
+  const mMain = partes[0].match(/^(.+?)\s+con\s+(.+)$/i);
   let tree = null;
-  if (m) {
-    const [, raiz, n1, h1, n2, h2, n3, h3] = m;
-    const resto = n2 ? [Number(n2), h2, n3 ? [Number(n3), h3] : null] : null;
-    tree = { nombre: cap(raiz), tipo: /gerencia/i.test(raiz) ? 'gerencia' : 'unidad', hijos: nivel(h1, Number(n1), resto) };
-  } else {
+
+  if (mMain) {
+    const raizNombre = mMain[1];
+    let hijosTxt = mMain[2];
+    // "y cada X N hijos" se aplica a todos los hijos de la lista
+    const cada = hijosTxt.match(/^(.*?)\s+y\s+cada\s+[\wáéíóúñ ]+?\s+(\d+)\s+(.+)$/i);
+    let porHijo = null;
+    if (cada) { hijosTxt = cada[1]; porHijo = { cant: Number(cada[2]), nombre: cada[3] }; }
+    tree = {
+      nombre: cap(sing(raizNombre)), tipo: tipoDe(raizNombre),
+      hijos: parseLista(hijosTxt).flatMap((it) =>
+        mk(it.nombre, it.cantidad, porHijo ? mk(porHijo.nombre, porHijo.cant) : [])),
+    };
+    // cláusulas "dentro de X": agregan hijos a los nodos cuyo nombre contiene X
+    const idx = {};
+    (function index(n) { idx[n.nombre.toLowerCase()] = idx[n.nombre.toLowerCase()] ?? n; n.hijos.forEach(index); })(tree);
+    for (const clausula of partes.slice(1)) {
+      const mm = clausula.match(/^(.+?)\s+(\d+|un|una)\s+(.+?)[.\s]*$/i)
+              ?? clausula.match(/^(.+?)\s+(.+?)[.\s]*$/);
+      if (!mm) continue;
+      const destino = mm[1].trim().toLowerCase();
+      const hijosCl = parseLista(mm.length === 4 ? `${mm[2]} ${mm[3]}` : mm[2]);
+      const norm = (s) => s.split(/\s+/).map((w) => sing(w)).join(' ');
+      const dNorm = norm(destino);
+      const target = Object.keys(idx).find((k) => {
+        const kNorm = norm(k);
+        return kNorm.includes(dNorm) || dNorm.includes(kNorm) ||
+               dNorm.split(' ').every((w) => w.length > 2 && kNorm.includes(w));
+      });
+      if (target) idx[target].hijos.push(...hijosCl.flatMap((it) => mk(it.nombre, it.cantidad)));
+    }
+  }
+  if (!tree) {
     const url = process.env.OLLAMA_URL || 'http://host.docker.internal:11434';
     const model = process.env.OLLAMA_MODEL || 'llama3.2:1b';
     const prompt = `Convierte esta descripción de estructura organizacional en JSON.
