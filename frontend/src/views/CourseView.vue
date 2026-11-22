@@ -73,13 +73,18 @@ onMounted(cargar);
 
     <section class="unidades">
       <article v-for="(l, i) in lecciones" :key="l.id" class="unidad">
-        <header>
-          <strong>Unidad {{ l.orden }} — {{ l.titulo }}</strong>
-          <button class="play" :disabled="generando === l.id" @click="reproduciendo === l.id ? stop() : play(l)">
-            {{ generando === l.id ? 'Generando…' : (reproduciendo === l.id ? '⏸' : '▶ Empezar') }}
-          </button>
-        </header>
-        <p>{{ l.texto }}</p>
+        <div class="unidad-body">
+          <div class="unidad-info">
+            <header>
+              <strong>Unidad {{ l.orden }} — {{ l.titulo }}</strong>
+              <button class="play" :disabled="generando === l.id" @click="reproduciendo === l.id ? stop() : play(l)">
+                {{ generando === l.id ? 'Generando…' : (reproduciendo === l.id ? '⏸' : '▶ Empezar') }}
+              </button>
+            </header>
+            <p>{{ l.texto }}</p>
+          </div>
+          <img src="/robot.png" alt="Asistente" class="robot" :class="{ hablando: reproduciendo === l.id }" />
+        </div>
       </article>
       <p v-if="curso && !lecciones.length" class="empty">
         {{ curso.estado === 'procesando' ? 'La IA está dividiendo el contenido en unidades…' : 'Este curso aún no tiene unidades (sube el PDF).' }}
@@ -105,7 +110,15 @@ h1 { color: var(--navy); margin: .3rem 0 0; }
 
 .unidades { margin-top: 1.4rem; display: flex; flex-direction: column; gap: .9rem; }
 .unidad { background: #fff; border-radius: 14px; padding: 1.1rem 1.3rem; box-shadow: 0 4px 16px rgba(15,30,80,.1); }
+.unidad-body { display: flex; gap: 1rem; align-items: flex-start; }
+.unidad-info { flex: 1; min-width: 0; }
 .unidad header { display: flex; justify-content: space-between; align-items: center; }
+.robot { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--navy); flex-shrink: 0; }
+.robot.hablando { border-color: var(--orange); animation: habla 0.9s ease-in-out infinite; }
+@keyframes habla {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(236,106,17,.5); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(236,106,17,0); }
+}
 .unidad strong { color: var(--navy); }
 .unidad p { color: #4b5563; font-size: .85rem; line-height: 1.5; }
 .play { border: 0; background: var(--navy); color: #fff; padding: .45rem 1.1rem; border-radius: 999px; font-weight: 700; font-size: .82rem; cursor: pointer; }
