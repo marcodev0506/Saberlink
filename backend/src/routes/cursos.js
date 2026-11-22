@@ -26,10 +26,11 @@ router.get('/resultados', async (req, res) => {
   const { rows } = await pool.query(
     `SELECT i.id, i.puntaje, i.total, i.aprobado, i.tipo, i.created_at,
             u.nombre AS estudiante, u.id AS usuario_id,
-            c.titulo AS curso, c.id AS curso_id
+            c.titulo AS curso, c.id AS curso_id, ce.codigo AS certificado
      FROM intentos i
      JOIN usuarios u ON u.id = i.usuario_id
      JOIN cursos c ON c.id = i.curso_id
+     LEFT JOIN certificados ce ON ce.curso_id = i.curso_id AND ce.usuario_id = i.usuario_id
      WHERE c.empresa_id = $1
      ORDER BY i.created_at DESC`,
     [req.user.empresa_id]

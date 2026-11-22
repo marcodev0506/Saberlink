@@ -1,6 +1,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { get } from '../api.js';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+async function descargarCert(codigo) {
+  const r = await fetch(`${API}/api/certificados/${codigo}/pdf`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  });
+  if (r.ok) window.open(URL.createObjectURL(await r.blob()), '_blank');
+}
 import AppLayout from '../components/AppLayout.vue';
 
 const resultados = ref([]);
@@ -66,7 +75,7 @@ function fecha(iso) {
         <thead>
           <tr>
             <th>{{ agrupar === 'estudiantes' ? 'Curso' : 'Estudiante' }}</th>
-            <th>Tipo de prueba</th><th>Puntaje</th><th>Resultado</th><th>Fecha</th>
+            <th>Tipo de prueba</th><th>Puntaje</th><th>Resultado</th><th>Certificado</th><th>Fecha</th>
           </tr>
         </thead>
         <tbody>
@@ -75,6 +84,7 @@ function fecha(iso) {
             <td><em class="tagtipo" :class="tipoKey(r.tipo)">{{ tipoLabel(r.tipo) }}</em></td>
             <td>{{ r.puntaje }} / {{ r.total }}</td>
             <td><em class="res" :class="{ ok: r.aprobado }">{{ r.aprobado ? 'Aprobado' : 'Reprobado' }}</em></td>
+            <td><button v-if="r.certificado" class="certbtn" @click="descargarCert(r.certificado)">📜 PDF</button><span v-else>—</span></td>
             <td>{{ fecha(r.created_at) }}</td>
           </tr>
         </tbody>
@@ -107,5 +117,6 @@ td { padding: .65rem .9rem; font-size: .82rem; color: #374151; border-bottom: 1p
 .tagtipo.practica { background: var(--cream); color: #8a5a1a; }
 .res { font-style: normal; font-size: .72rem; font-weight: 700; padding: .12rem .55rem; border-radius: 999px; background: #fdecec; color: var(--danger); }
 .res.ok { background: #e6f4ea; color: #1a7f37; }
+.certbtn { border: 0; background: var(--orange); color: #fff; padding: .25rem .7rem; border-radius: 999px; font-size: .72rem; font-weight: 700; cursor: pointer; }
 .empty { color: #9aa3b5; text-align: center; padding: 3rem 0; }
 </style>
