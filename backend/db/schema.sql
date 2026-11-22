@@ -92,3 +92,12 @@ CREATE TABLE IF NOT EXISTS intentos (
 ALTER TABLE intentos ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'final' CHECK (tipo IN ('diagnostico','final'));
 
 ALTER TABLE cursos ADD COLUMN IF NOT EXISTS habilidades JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+CREATE TABLE IF NOT EXISTS catalogo (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
+  tipo       TEXT NOT NULL CHECK (tipo IN ('competencia','habilidad')),
+  nombre     TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (empresa_id, tipo, nombre)
+);

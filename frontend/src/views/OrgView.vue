@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { get, post, put, del } from '../api.js';
 import AppLayout from '../components/AppLayout.vue';
 import OrgCard from '../components/OrgCard.vue';
+import TagSelect from '../components/TagSelect.vue';
 
 const arbol = ref([]);
 const error = ref('');
@@ -13,15 +14,8 @@ const colapsados = ref(new Set());
 
 const f = ref({ cargo: '', nombre_apellido: '', ci: '', correo: '' });
 const p = ref({ descripcion: '', competencias: [], habilidades: [] });
-const tagDraft = ref({ competencias: '', habilidades: '' });
 const tipoDraft = ref('unidad');
 
-function addTag(campo) {
-  const t = tagDraft.value[campo].trim();
-  if (t && !p.value[campo].includes(t)) p.value[campo].push(t);
-  tagDraft.value[campo] = '';
-}
-function delTag(campo, i) { p.value[campo].splice(i, 1); }
 function fmtCi(e) { f.value.ci = 'V-' + e.target.value.replace(/[^0-9]/g, ''); }
 
 async function cargar() {
@@ -50,7 +44,6 @@ function abrirPerfil(node) {
     competencias: [...(node.competencias || [])],
     habilidades: [...(node.habilidades || [])],
   };
-  tagDraft.value = { competencias: '', habilidades: '' };
 }
 
 async function guardar() {
@@ -151,14 +144,8 @@ onMounted(cargar);
           <label>Descripción del puesto <textarea v-model="p.descripcion" rows="3" placeholder="Funciones y alcance" /></label>
           <div class="tagfield" v-for="campo in ['competencias','habilidades']" :key="campo">
             <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }}
-              <span class="hint">(Enter para agregar — enlazan a cursos)</span></label>
-            <div class="chips">
-              <em v-for="(t, i) in p[campo]" :key="t" class="tag"
-                  :class="campo === 'competencias' ? 'comp' : 'hab'"
-                  @click="delTag(campo, i)">{{ t }} ×</em>
-              <input v-model="tagDraft[campo]" @keydown.enter.prevent="addTag(campo)"
-                     @keydown.tab="addTag(campo)" placeholder="Escribe y presiona Enter" />
-            </div>
+              <span class="hint">(del banco central — enlazan a cursos)</span></label>
+            <TagSelect :tipo="campo === 'competencias' ? 'competencia' : 'habilidad'" v-model="p[campo]" />
           </div>
         </template>
         <div v-if="modal.mode === 'card' || modal.mode === 'perfil'" class="dialog-actions">
@@ -192,7 +179,4 @@ h1 { color: var(--navy); margin: 0; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }
 .hint { font-weight: 400; color: #9aa3b5; }
 .tagfield label { font-size: .8rem; font-weight: 600; color: #374151; display: block; margin-bottom: .35rem; }
-.chips { display: flex; flex-wrap: wrap; gap: .3rem; border: 1.5px solid #e2e6f0; border-radius: 8px; padding: .45rem; }
-.chips input { flex: 1; min-width: 110px; border: 0; outline: none; font-family: inherit; font-size: .85rem; }
-.chips .tag { cursor: pointer; }
 </style>
