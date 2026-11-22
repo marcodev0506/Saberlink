@@ -46,7 +46,9 @@ if (localStorage.getItem('token')) router.replace('/inicio');
 
     <section id="confia" class="confia">
       <div class="dots">
-        <span v-for="t in ['Impulso','Escalabilidad','Articulación','Agilidad','Acreditación','Evolución','Proyección','Cierre de brechas']" :key="t"><i></i>{{ t }}</span>
+        <div class="ticker">
+          <span v-for="t in ['Impulso','Escalabilidad','Articulación','Agilidad','Acreditación','Evolución','Proyección','Cierre de brechas','Impulso','Escalabilidad','Articulación','Agilidad','Acreditación','Evolución','Proyección','Cierre de brechas']" :key="t"><i></i>{{ t }}</span>
+        </div>
       </div>
       <div class="confia-body">
         <h2>CONFÍA EN<br /><span class="o">SABERLINK</span></h2>
@@ -97,7 +99,9 @@ if (localStorage.getItem('token')) router.replace('/inicio');
 .b p { color: rgba(255,255,255,.75); font-size: .83rem; line-height: 1.5; margin: 0; }
 
 .confia { padding-bottom: 0; }
-.dots { display: flex; flex-wrap: wrap; gap: 1.6rem; justify-content: center; background: var(--cream); padding: 1.1rem 2rem; font-size: .88rem; color: var(--navy); font-weight: 700; }
+.dots { background: var(--cream); padding: 1.1rem 0; overflow: hidden; }
+.ticker { display: flex; gap: 2.4rem; white-space: nowrap; width: max-content; font-size: .88rem; color: var(--navy); font-weight: 700; animation: cintillo 28s linear infinite; }
+@keyframes cintillo { to { transform: translateX(-50%); } }
 .dots i { width: 15px; height: 15px; border-radius: 50%; background: var(--orange); display: inline-block; margin-right: .45rem; vertical-align: middle; }
 .confia-body { display: grid; grid-template-columns: 1fr 1.4fr; gap: 3rem; padding: 3.5rem 4rem; align-items: center; }
 .confia-body h2 { color: var(--navy); font-size: clamp(2rem, 3.5vw, 3rem); margin: 0; line-height: 1.15; }
