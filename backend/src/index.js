@@ -5,6 +5,7 @@ import { migrate } from './migrate.js';
 import authRouter from './routes/auth.js';
 import usuariosRouter from './routes/usuarios.js';
 import unidadesRouter from './routes/unidades.js';
+import cursosRouter from './routes/cursos.js';
 
 const app = express();
 app.use((req, res, next) => {
@@ -14,10 +15,11 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use('/api/auth', authRouter);
 app.use('/api/usuarios', usuariosRouter);
 app.use('/api/unidades', unidadesRouter);
+app.use('/api/cursos', cursosRouter);
 
 app.get('/health', async (_req, res) => {
   try {

@@ -25,6 +25,7 @@ const links = computed(() => {
     l.push({ to: '/usuarios', label: 'Usuarios' });
     l.push({ to: '/estructura', label: 'Estructura' });
   }
+  l.push({ to: '/cursos', label: 'Cursos' });
   return l;
 });
 

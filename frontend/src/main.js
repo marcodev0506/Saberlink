@@ -6,6 +6,7 @@ import RegisterView from './views/RegisterView.vue';
 import HomeView from './views/HomeView.vue';
 import UsersView from './views/UsersView.vue';
 import OrgView from './views/OrgView.vue';
+import CoursesView from './views/CoursesView.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -16,6 +17,7 @@ const router = createRouter({
     { path: '/inicio', component: HomeView, meta: { auth: true } },
     { path: '/usuarios', component: UsersView, meta: { auth: true } },
     { path: '/estructura', component: OrgView, meta: { auth: true } },
+    { path: '/cursos', component: CoursesView, meta: { auth: true } },
   ],
 });
 

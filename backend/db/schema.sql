@@ -42,3 +42,19 @@ ALTER TABLE unidades ADD COLUMN IF NOT EXISTS ci              TEXT NOT NULL DEFA
 ALTER TABLE unidades ADD COLUMN IF NOT EXISTS correo          TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS unidades_empresa_idx ON unidades(empresa_id, parent_id);
 
+CREATE TABLE IF NOT EXISTS cursos (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id    UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
+  titulo        TEXT NOT NULL,
+  objetivo      TEXT NOT NULL DEFAULT '',
+  facilitador_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+  pdf_path      TEXT NOT NULL DEFAULT '',
+  guion         TEXT NOT NULL DEFAULT '',
+  evaluaciones  JSONB NOT NULL DEFAULT '[]'::jsonb,
+  audio_path    TEXT NOT NULL DEFAULT '',
+  estado        TEXT NOT NULL DEFAULT 'borrador' CHECK (estado IN ('borrador','procesando','listo','publicado')),
+  competencias  JSONB NOT NULL DEFAULT '[]'::jsonb,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS cursos_empresa_idx ON cursos(empresa_id);
+

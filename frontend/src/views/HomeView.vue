@@ -28,10 +28,10 @@ onMounted(async () => {
           <h3>Usuarios</h3>
           <p>Invita trabajadores y expertos, asígnales roles dentro de tu empresa.</p>
         </router-link>
-        <div class="card disabled">
+        <router-link to="/cursos" class="card">
           <h3>Cursos</h3>
-          <p>Catálogo de cursos y lecciones — próximamente.</p>
-        </div>
+          <p>Catálogo de cursos — el experto sube el PDF y la IA genera guion, evaluaciones y audio.</p>
+        </router-link>
         <div class="card disabled">
           <h3>Certificados</h3>
           <p>Acreditaciones PDF con código QR — próximamente.</p>

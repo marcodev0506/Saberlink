@@ -1,5 +1,8 @@
 import amqp from 'amqplib';
 import fs from 'node:fs/promises';
+import pg from 'pg';
+
+const pool = process.env.DATABASE_URL ? new pg.Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
 const QUEUE = 'voice.jobs';
 const STORAGE_DIR = process.env.STORAGE_DIR || '/app/storage/audio';
@@ -34,9 +37,11 @@ async function main() {
     try {
       const job = JSON.parse(msg.content.toString());
       const audio = await textToSpeech(job.payload.guion ?? job.payload.text ?? '');
-      const name = `${Date.now()}.mp3`;
+      const name = `${job.payload?.curso_id ?? Date.now()}.mp3`;
       await fs.mkdir(STORAGE_DIR, { recursive: true });
       await fs.writeFile(`${STORAGE_DIR}/${name}`, audio);
+      if (pool && job.payload?.curso_id)
+        await pool.query('UPDATE cursos SET audio_path = $1 WHERE id = $2', [`${STORAGE_DIR}/${name}`, job.payload.curso_id]);
       console.log(`audio saved: ${name}`);
       ch.ack(msg);
     } catch (err) {

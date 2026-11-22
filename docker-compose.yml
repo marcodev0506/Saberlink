@@ -37,6 +37,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-saberlink}:${POSTGRES_PASSWORD:-saberlink}@postgres:5432/${POSTGRES_DB:-saberlink}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-saberlink}:${RABBITMQ_PASS:-saberlink}@rabbitmq:5672
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      STORAGE_DIR: /app/storage
     ports:
       - "3000:3000"
     volumes:
@@ -67,8 +68,14 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-saberlink}:${RABBITMQ_PASS:-saberlink}@rabbitmq:5672
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
+      DATABASE_URL: postgres://${POSTGRES_USER:-saberlink}:${POSTGRES_PASSWORD:-saberlink}@postgres:5432/${POSTGRES_DB:-saberlink}
+      STORAGE_DIR: /app/storage
+    volumes:
+      - ./storage:/app/storage
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
 
   # Opcional: corre Ollama en Docker solo si no lo tienes instalado localmente.
@@ -87,6 +94,7 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-saberlink}:${RABBITMQ_PASS:-saberlink}@rabbitmq:5672
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
       STORAGE_DIR: /app/storage/audio
+      DATABASE_URL: postgres://${POSTGRES_USER:-saberlink}:${POSTGRES_PASSWORD:-saberlink}@postgres:5432/${POSTGRES_DB:-saberlink}
     volumes:
       - ./storage/audio:/app/storage/audio
     depends_on:
