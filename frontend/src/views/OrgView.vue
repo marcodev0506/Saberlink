@@ -3,9 +3,8 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import AppLayout from '../components/AppLayout.vue';
 import TagSelect from '../components/TagSelect.vue';
 import { get, post, put, del } from '../api';
-import { useAuth } from '../auth';
 
-const { user } = useAuth();
+const user = JSON.parse(localStorage.getItem('user') || '{}');
 const esRrhh = user.rol === 'rrhh';
 
 const arbol = ref([]);
