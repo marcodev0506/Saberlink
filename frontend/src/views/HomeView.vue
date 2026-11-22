@@ -32,6 +32,7 @@ function logout() {
       <p>Bienvenido, <strong>{{ user.nombre }}</strong> ({{ user.rol }}) — {{ user.empresa }} ({{ user.rif }})</p>
       <nav class="nav">
         <router-link v-if="user.rol === 'rrhh'" to="/usuarios">Gestionar usuarios</router-link>
+        <router-link v-if="user.rol === 'rrhh'" to="/estructura">Estructura organizacional</router-link>
       </nav>
       <button @click="logout">Cerrar sesión</button>
     </template>

@@ -5,6 +5,7 @@ import LoginView from './views/LoginView.vue';
 import RegisterView from './views/RegisterView.vue';
 import HomeView from './views/HomeView.vue';
 import UsersView from './views/UsersView.vue';
+import OrgView from './views/OrgView.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,6 +15,7 @@ const router = createRouter({
     { path: '/registro', component: RegisterView },
     { path: '/inicio', component: HomeView, meta: { auth: true } },
     { path: '/usuarios', component: UsersView, meta: { auth: true } },
+    { path: '/estructura', component: OrgView, meta: { auth: true } },
   ],
 });
 

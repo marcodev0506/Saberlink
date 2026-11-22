@@ -26,3 +26,21 @@ export async function get(path) {
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
   return data;
 }
+
+export async function put(path, body) {
+  const res = await fetch(`${API}${path}`, {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  return data;
+}
+
+export async function del(path) {
+  const res = await fetch(`${API}${path}`, { method: 'DELETE', headers: headers() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  return data;
+}
