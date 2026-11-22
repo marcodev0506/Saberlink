@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { get, post } from '../api.js';
 import AppLayout from '../components/AppLayout.vue';
 
@@ -13,6 +13,10 @@ const ok = ref('');
 const loading = ref(false);
 const importMsg = ref('');
 const tab = ref('registro');
+const pagina = ref(0);
+const POR_PAGINA = 10;
+const totalPaginas = computed(() => Math.max(1, Math.ceil(usuarios.value.length / POR_PAGINA)));
+const usuariosPagina = computed(() => usuarios.value.slice(pagina.value * POR_PAGINA, (pagina.value + 1) * POR_PAGINA));
 
 async function importar(ev) {
   const f = ev.target.files[0];
@@ -96,7 +100,7 @@ onMounted(cargar);
           <tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Alta</th></tr>
         </thead>
         <tbody>
-          <tr v-for="u in usuarios" :key="u.id">
+          <tr v-for="u in usuariosPagina" :key="u.id">
             <td>{{ u.nombre }}</td>
             <td>{{ u.email }}</td>
             <td><span class="chip" :data-rol="u.rol">{{ u.rol }}</span></td>
@@ -104,6 +108,11 @@ onMounted(cargar);
           </tr>
         </tbody>
       </table>
+      <nav class="pager" v-if="totalPaginas > 1">
+        <button :disabled="pagina === 0" @click="pagina--">← Anterior</button>
+        <span>Página {{ pagina + 1 }} de {{ totalPaginas }}</span>
+        <button :disabled="pagina >= totalPaginas - 1" @click="pagina++">Siguiente →</button>
+      </nav>
     </section>
   </AppLayout>
 </template>
@@ -113,6 +122,9 @@ h1 { color: var(--navy); }
 .tabs { display: flex; gap: .4rem; margin-top: 1.5rem; }
 .tabs button { padding: .55rem 1.1rem; border: 0; border-radius: 999px; background: #e8dcc4; color: var(--navy); font-weight: 700; cursor: pointer; font-size: .85rem; }
 .tabs button.active { background: var(--navy); color: #fff; }
+.pager { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; font-size: .85rem; color: var(--navy); font-weight: 600; }
+.pager button { padding: .45rem 1rem; border: 0; border-radius: 8px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
+.pager button:disabled { opacity: .4; cursor: default; }
 .card { background: #fff; border-radius: 14px; padding: 1.5rem; box-shadow: 0 6px 24px rgba(15,30,80,.08); margin-top: 1.5rem; }
 h2 { font-size: 1rem; margin: 0 0 1rem; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
