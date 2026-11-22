@@ -57,12 +57,72 @@ router.post('/chat', requireRrhh, async (req, res) => {
   const { texto } = req.body ?? {};
   if (!texto?.trim()) return res.status(400).json({ error: 'Falta el texto' });
 
-  // 1) Ollama primero: lenguaje natural libre
   let tree = null;
-  try {
-    const url = process.env.OLLAMA_URL || 'http://host.docker.internal:11434';
-    const model = process.env.OLLAMA_MODEL || 'llama3.2:1b';
-    const prompt = `Convierte una descripción de estructura organizacional (en español) a un árbol JSON.
+  const cap = (s) => s.trim().replace(/\b\w/g, (c) => c.toUpperCase());
+  const sing = (s) => s.trim().replace(/^(?:un|una)\s+/i, '').replace(/(ces|es|e|s)$/i, '');
+  const NUM = { un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10 };
+  const tipoDe = (s) => (/gerencia|presidencia|direcci/i.test(s) ? 'gerencia' : 'unidad');
+  const mk = (nombre, cantidad, hijos = []) => {
+    const base = cap(sing(nombre));
+    return Array.from({ length: cantidad }, (_, i) => ({
+      nombre: cantidad > 1 ? `${base} ${i + 1}` : base, tipo: tipoDe(base), hijos,
+    }));
+  };
+
+  // Un ítem: [N | un | una] nombre   -> nodo(s)
+  function parseItem(t) {
+    const m = t.trim().match(/^(?:(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+)?(.+)$/i);
+    if (!m) return null;
+    return { nombre: m[2], cantidad: m[1] ? (NUM[m[1].toLowerCase()] ?? Number(m[1])) : 1 };
+  }
+
+  // Lista de ítems separados por "," o " y " (pero no "cada" ni "dentro")
+  function parseLista(t) {
+    return t.split(/\s*,\s*|\s+y\s+/i).map(parseItem).filter(Boolean);
+  }
+
+  // Determinístico: "<raíz> con <lista> [y cada X N hijos] [, y dentro de X <lista>]…"
+  const txt = texto.trim().replace(/^(?:quiero\s+crear\s+|crea(?:r)?\s+)/i, '');
+  const partes = txt.split(/\s*(?:,|\.)?\s*y?\s*dentro\s+de\s+/i);
+  const mMain = partes[0].match(/^(.+?)\s+con\s+(.+)$/i);
+
+  if (mMain) {
+    const raizNombre = mMain[1];
+    let hijosTxt = mMain[2];
+    // "y cada X N hijos" se aplica a todos los hijos de la lista
+    const cada = hijosTxt.match(/^(.*?)\s+y\s+cada\s+[\wáéíóúñ ]+?\s+(?:con\s+)?(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+(.+)$/i);
+    let porHijo = null;
+    if (cada) { hijosTxt = cada[1]; porHijo = { cant: NUM[cada[2].toLowerCase()] ?? Number(cada[2]), nombre: cada[3] }; }
+    tree = {
+      nombre: cap(sing(raizNombre)), tipo: tipoDe(raizNombre),
+      hijos: parseLista(hijosTxt).flatMap((it) =>
+        mk(it.nombre, it.cantidad, porHijo ? mk(porHijo.nombre, porHijo.cant) : [])),
+    };
+    // cláusulas "dentro de X": agregan hijos a los nodos cuyo nombre contiene X
+    const idx = {};
+    (function index(n) { idx[n.nombre.toLowerCase()] = idx[n.nombre.toLowerCase()] ?? n; n.hijos.forEach(index); })(tree);
+    for (const clausula of partes.slice(1)) {
+      const mm = clausula.match(/^(.+?)\s+(\d+|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+(.+?)[.\s]*$/i)
+              ?? clausula.match(/^(.+?)\s+(.+?)[.\s]*$/);
+      if (!mm) continue;
+      const destino = mm[1].trim().toLowerCase();
+      const hijosCl = parseLista(mm.length === 4 ? `${mm[2]} ${mm[3]}` : mm[2]);
+      const norm = (s) => s.split(/\s+/).map((w) => sing(w)).join(' ');
+      const dNorm = norm(destino);
+      const target = Object.keys(idx).find((k) => {
+        const kNorm = norm(k);
+        return kNorm.includes(dNorm) || dNorm.includes(kNorm) ||
+               dNorm.split(' ').every((w) => w.length > 2 && kNorm.includes(w));
+      });
+      if (target) idx[target].hijos.push(...hijosCl.flatMap((it) => mk(it.nombre, it.cantidad)));
+    }
+  }
+  // 2) Respaldo: Ollama interpreta descripciones libres que el parser no cubre
+  if (!tree) {
+    try {
+      const url = process.env.OLLAMA_URL || 'http://host.docker.internal:11434';
+      const model = process.env.OLLAMA_MODEL || 'llama3.2:1b';
+      const prompt = `Convierte una descripción de estructura organizacional (en español) a un árbol JSON.
 Reglas:
 - Devuelve SOLO JSON válido, sin texto extra ni markdown: {"nombre":"...","tipo":"gerencia","hijos":[...]}
 - "tipo" es "gerencia" para gerencias/presidencias/direcciones y "unidad" para el resto.
@@ -85,78 +145,19 @@ Descripción: "una presidencia con una gerencia de operaciones y una gerencia de
 ]}
 
 Descripción: "${texto}"`;
-    const r = await fetch(`${url}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, prompt, stream: false, format: 'json' }),
-    });
-    if (r.ok) {
-      const { response } = await r.json();
-      try {
-        const t = JSON.parse(response);
-        if (t?.nombre) tree = t;
-      } catch { /* cae al parser */ }
-    }
-  } catch { /* Ollama inalcanzable: cae al parser */ }
-
-  const cap = (s) => s.trim().replace(/\b\w/g, (c) => c.toUpperCase());
-  const sing = (s) => s.trim().replace(/^(?:un|una)\s+/i, '').replace(/(ces|es|e|s)$/i, '');
-  const NUM = { un: 1, una: 1 };
-  const tipoDe = (s) => (/gerencia|presidencia|direcci/i.test(s) ? 'gerencia' : 'unidad');
-  const mk = (nombre, cantidad, hijos = []) => {
-    const base = cap(sing(nombre));
-    return Array.from({ length: cantidad }, (_, i) => ({
-      nombre: cantidad > 1 ? `${base} ${i + 1}` : base, tipo: tipoDe(base), hijos,
-    }));
-  };
-
-  // Un ítem: [N | un | una] nombre   -> nodo(s)
-  function parseItem(t) {
-    const m = t.trim().match(/^(?:(\d+|un|una)\s+)?(.+)$/i);
-    if (!m) return null;
-    return { nombre: m[2], cantidad: m[1] ? (NUM[m[1].toLowerCase()] ?? Number(m[1])) : 1 };
-  }
-
-  // Lista de ítems separados por "," o " y " (pero no "cada" ni "dentro")
-  function parseLista(t) {
-    return t.split(/\s*,\s*|\s+y\s+/i).map(parseItem).filter(Boolean);
-  }
-
-  // Determinístico: "<raíz> con <lista> [y cada X N hijos] [, y dentro de X <lista>]…"
-  const txt = texto.trim().replace(/^(?:quiero\s+crear\s+|crea(?:r)?\s+)/i, '');
-  const partes = txt.split(/\s*(?:,|\.)?\s*y?\s*dentro\s+de\s+/i);
-  const mMain = partes[0].match(/^(.+?)\s+con\s+(.+)$/i);
-
-  if (!tree && mMain) {
-    const raizNombre = mMain[1];
-    let hijosTxt = mMain[2];
-    // "y cada X N hijos" se aplica a todos los hijos de la lista
-    const cada = hijosTxt.match(/^(.*?)\s+y\s+cada\s+[\wáéíóúñ ]+?\s+(\d+)\s+(.+)$/i);
-    let porHijo = null;
-    if (cada) { hijosTxt = cada[1]; porHijo = { cant: Number(cada[2]), nombre: cada[3] }; }
-    tree = {
-      nombre: cap(sing(raizNombre)), tipo: tipoDe(raizNombre),
-      hijos: parseLista(hijosTxt).flatMap((it) =>
-        mk(it.nombre, it.cantidad, porHijo ? mk(porHijo.nombre, porHijo.cant) : [])),
-    };
-    // cláusulas "dentro de X": agregan hijos a los nodos cuyo nombre contiene X
-    const idx = {};
-    (function index(n) { idx[n.nombre.toLowerCase()] = idx[n.nombre.toLowerCase()] ?? n; n.hijos.forEach(index); })(tree);
-    for (const clausula of partes.slice(1)) {
-      const mm = clausula.match(/^(.+?)\s+(\d+|un|una)\s+(.+?)[.\s]*$/i)
-              ?? clausula.match(/^(.+?)\s+(.+?)[.\s]*$/);
-      if (!mm) continue;
-      const destino = mm[1].trim().toLowerCase();
-      const hijosCl = parseLista(mm.length === 4 ? `${mm[2]} ${mm[3]}` : mm[2]);
-      const norm = (s) => s.split(/\s+/).map((w) => sing(w)).join(' ');
-      const dNorm = norm(destino);
-      const target = Object.keys(idx).find((k) => {
-        const kNorm = norm(k);
-        return kNorm.includes(dNorm) || dNorm.includes(kNorm) ||
-               dNorm.split(' ').every((w) => w.length > 2 && kNorm.includes(w));
+      const r = await fetch(`${url}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, prompt, stream: false, format: 'json' }),
       });
-      if (target) idx[target].hijos.push(...hijosCl.flatMap((it) => mk(it.nombre, it.cantidad)));
-    }
+      if (r.ok) {
+        const { response } = await r.json();
+        try {
+          const t = JSON.parse(response);
+          if (t?.nombre) tree = t;
+        } catch { /* sin árbol */ }
+      }
+    } catch { /* Ollama inalcanzable */ }
   }
   if (!tree) return res.status(502).json({ error: 'No pude interpretar la descripción — intenta "una gerencia con N hijos y cada hijo M sub-hijos"' });
 
