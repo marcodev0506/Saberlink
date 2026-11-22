@@ -79,23 +79,6 @@ async function guardar() {
   }
 }
 
-const probando = ref(false);
-const audioUrl = ref('');
-async function probarVoz() {
-  probando.value = true;
-  error.value = '';
-  try {
-    const r = await fetch('http://localhost:3000/api/voz/test');
-    if (!r.ok) throw new Error((await r.json()).error || `Error ${r.status}`);
-    const blob = await r.blob();
-    audioUrl.value = URL.createObjectURL(blob);
-    new Audio(audioUrl.value).play();
-  } catch (err) {
-    error.value = err.message;
-  } finally {
-    probando.value = false;
-  }
-}
 
 async function borrar(c) {
   modal.value = 'confirm-' + c.id;
@@ -118,7 +101,6 @@ onMounted(cargar);
       </div>
       <div class="actions">
         <a class="ghost link" href="/plantilla_unidad.docx" download>📄 Plantilla</a>
-        <button class="ghost" @click="probarVoz" :disabled="probando">{{ probando ? 'Generando…' : '🔊 Probar voz' }}</button>
         <button v-if="puedeCrear" class="primary" @click="modal = true">+ Curso</button>
       </div>
     </header>
@@ -132,7 +114,7 @@ onMounted(cargar);
         <div class="body">
           <h3>TÍTULO DEL CURSO: {{ c.titulo }}</h3>
           <p>{{ c.objetivo || 'OBJETIVO GENERAL DEL CURSO' }}</p>
-          <p class="fac">FACILITADOR: {{ c.facilitador || '—' }}</p>
+
           <span class="estado" :class="c.estado">{{ c.estado }}</span>
           <button v-if="puedeCrear" class="del" @click.stop="editar(c)">✎</button>
           <button v-if="puedeCrear" class="del" @click.stop="borrar(c)">🗑</button>
