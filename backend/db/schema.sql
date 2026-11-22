@@ -148,3 +148,16 @@ CREATE TABLE IF NOT EXISTS progreso_audio (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS progreso_audio_uniq ON progreso_audio(curso_id, usuario_id, COALESCE(leccion_id, '00000000-0000-0000-0000-000000000000'::uuid));
 CREATE INDEX IF NOT EXISTS progreso_audio_user_idx ON progreso_audio(usuario_id, curso_id);
+
+CREATE TABLE IF NOT EXISTS notificaciones (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id UUID NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  curso_id   UUID NOT NULL REFERENCES cursos(id) ON DELETE CASCADE,
+  titulo     TEXT NOT NULL,
+  mensaje    TEXT NOT NULL,
+  leida      BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (usuario_id, curso_id)
+);
+CREATE INDEX IF NOT EXISTS notificaciones_user_idx ON notificaciones(usuario_id, leida, created_at DESC);

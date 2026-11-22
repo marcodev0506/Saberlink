@@ -194,13 +194,16 @@ onMounted(cargar);
     </div>
 
     <div v-if="modal" class="overlay" @click.self="modal = null">
-      <div class="dialog">
+      <div :class="['dialog', { 'dialog-sm': modal.mode === 'confirm' }]">
         <template v-if="modal.mode === 'card'">
           <h2>{{ modal.node ? 'Editar puesto' : modal.padre ? `Sub-unidad de "${modal.padre.cargo || modal.padre.nombre}"` : 'Nueva unidad' }}</h2>
-          <label>Tipo <input v-model="tipoDraft" placeholder="gerencia, unidad, analista…" /></label>
-          <label>Cargo / Nombre <input v-model="f.cargo" placeholder="Gerente de Operaciones" /></label>
+          <div class="form-row">
+            <label>Tipo <input v-model="tipoDraft" placeholder="gerencia, unidad, analista…" /></label>
+            <label>Cargo / Nombre <input v-model="f.cargo" placeholder="Gerente de Operaciones" /></label>
+          </div>
           <div class="ac-wrap">
-            <label>CI (Cédula) <span class="hint">— escribe para autocompletar</span>
+            <label>
+              <span class="lbl-line">CI (Cédula) <span class="hint">— escribe para autocompletar</span></span>
               <input :value="f.ci" @input="fmtCi" @focus="mostrarSug = true" placeholder="V-12345678" inputmode="numeric" />
             </label>
             <ul v-if="mostrarSug && sugerencias.length" class="ac-list">
@@ -209,8 +212,10 @@ onMounted(cargar);
               </li>
             </ul>
           </div>
-          <label>Nombre y Apellido <input v-model="f.nombre_apellido" @focus="mostrarSug = true" /></label>
-          <label>Correo <input v-model="f.correo" type="email" @input="onCorreoInput" /></label>
+          <div class="form-row">
+            <label>Nombre y Apellido <input v-model="f.nombre_apellido" @focus="mostrarSug = true" /></label>
+            <label>Correo <input v-model="f.correo" type="email" @input="onCorreoInput" /></label>
+          </div>
           <p v-if="f.usuario_id" class="linked-ok">✓ Vinculado a usuario registrado en la empresa</p>
         </template>
         <template v-else-if="modal.mode === 'confirm'">
@@ -258,12 +263,17 @@ h1 { color: var(--navy); margin: 0; }
 .tree { list-style: none; margin-top: 0; padding: 0; margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: center; }
 .tree > li { display: flex; flex-direction: column; align-items: center; }
 
-.overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
-.dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 360px; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; }
-.dialog h2 { margin: 0; font-size: 1.05rem; color: var(--navy); }
-.dialog label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: #374151; }
-.dialog input, .dialog select, .dialog textarea { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+.overlay { position: fixed; inset: 0; background: rgba(10,20,50,.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
+.dialog { background: #fff; border-radius: 18px; padding: 2rem 2.25rem; width: min(640px, 94vw); display: flex; flex-direction: column; gap: 1.15rem; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(10,20,50,.22); box-sizing: border-box; }
+.dialog-sm { width: min(420px, 92vw); }
+.dialog h2 { margin: 0 0 .2rem; font-size: 1.25rem; color: var(--navy); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.dialog label { display: flex; flex-direction: column; gap: .4rem; font-size: .84rem; font-weight: 600; color: #374151; }
+.lbl-line { display: flex; align-items: baseline; gap: .35rem; flex-wrap: wrap; }
+.dialog input, .dialog select, .dialog textarea { padding: .68rem .85rem; border: 1.5px solid #d8dee9; border-radius: 10px; font-family: inherit; font-size: .9rem; }
+.dialog input:focus, .dialog select:focus, .dialog textarea:focus { outline: none; border-color: var(--navy); }
+.dialog-actions { display: flex; justify-content: flex-end; gap: .65rem; margin-top: .35rem; }
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
 .hint { font-weight: 400; color: #9aa3b5; }
 .tagfield label { font-size: .8rem; font-weight: 600; color: #374151; display: block; margin-bottom: .35rem; }
 .ac-wrap { position: relative; }

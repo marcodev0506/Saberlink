@@ -278,13 +278,8 @@ function fmtFecha(iso) {
                       <div class="prog-fill" :style="{ width: Math.max(c.progreso_pct, 4) + '%' }"></div>
                     </div>
                     <div class="fc-footer">
-                      <div class="mentor">
-                        <span class="m-ava">{{ c.facilitador[0] }}</span>
-                        <div>
-                          <small>Facilitador</small>
-                          <b>{{ c.facilitador }}</b>
-                        </div>
-                      </div>
+                      <span v-if="c.final_pct !== null" class="fc-meta-pill">Final: {{ c.final_pct }}%</span>
+                      <span v-else class="fc-meta-pill">{{ c.en_progreso ? 'En progreso' : 'Disponible' }}</span>
                       <button class="btn-go" @click.stop="$router.push(`/cursos/${c.id}`)">
                         {{ c.en_progreso ? 'Continuar →' : 'Iniciar →' }}
                       </button>
@@ -736,13 +731,7 @@ function fmtFecha(iso) {
 .prog-fill { height: 100%; background: linear-gradient(90deg, #FF6747, #EC6A11); border-radius: 999px; }
 
 .fc-footer { display: flex; justify-content: space-between; align-items: center; gap: .4rem; margin-top: .75rem; }
-.mentor { display: flex; align-items: center; gap: .45rem; min-width: 0; }
-.m-ava {
-  width: 28px; height: 28px; border-radius: 50%; background: #e2e8f0; color: var(--navy);
-  font-weight: 800; font-size: .75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.mentor small { display: block; font-size: .65rem; color: #94a3b8; line-height: 1; }
-.mentor b { display: block; font-size: .73rem; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95px; }
+.fc-meta-pill { font-size: .73rem; font-weight: 700; color: #64748b; }
 .btn-go {
   border: 0; background: #14171f; color: #fff; font-size: .72rem; font-weight: 700;
   padding: .34rem .7rem; border-radius: 999px; cursor: pointer; white-space: nowrap;

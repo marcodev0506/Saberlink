@@ -57,8 +57,8 @@ function matchRelacion(curso, compSet, habSet) {
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
     `SELECT c.id, c.titulo, c.objetivo, c.estado, c.competencias, c.habilidades, c.audio_path,
-            c.imagen_path, c.duracion, c.facilitador_id, u.nombre AS facilitador
-     FROM cursos c LEFT JOIN usuarios u ON u.id = c.facilitador_id
+            c.imagen_path, c.duracion
+     FROM cursos c
      WHERE c.empresa_id = $1 ORDER BY c.created_at DESC`, [req.user.empresa_id]
   );
   if (req.user.rol === 'trabajador') {
@@ -82,8 +82,8 @@ router.get('/mi-portal', async (req, res) => {
   const [cursosRes, leccionesRes, intentosRes, certsRes, audioRes] = await Promise.all([
     pool.query(
       `SELECT c.id, c.titulo, c.objetivo, c.estado, c.competencias, c.habilidades,
-              c.imagen_path, c.duracion, c.facilitador_id, u.nombre AS facilitador
-       FROM cursos c LEFT JOIN usuarios u ON u.id = c.facilitador_id
+              c.imagen_path, c.duracion
+       FROM cursos c
        WHERE c.empresa_id = $1 ORDER BY c.created_at DESC`,
       [empresaId]
     ),
@@ -177,7 +177,6 @@ router.get('/mi-portal', async (req, res) => {
       duracion: c.duracion || '',
       estado: c.estado,
       imagen_path: c.imagen_path || '',
-      facilitador: c.facilitador || 'Facilitador Saberlink',
       competencias: Array.isArray(c.competencias) ? c.competencias : [],
       habilidades: Array.isArray(c.habilidades) ? c.habilidades : [],
       match_competencias: matchComp,
@@ -502,8 +501,8 @@ router.get('/reportes', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   const { rows: [c] } = await pool.query(
-    `SELECT c.id, c.titulo, c.objetivo, c.estado, c.evaluaciones, c.guion, c.imagen_path, u.nombre AS facilitador
-     FROM cursos c LEFT JOIN usuarios u ON u.id = c.facilitador_id
+    `SELECT c.id, c.titulo, c.objetivo, c.estado, c.evaluaciones, c.guion, c.imagen_path
+     FROM cursos c
      WHERE c.id = $1 AND c.empresa_id = $2`, [req.params.id, req.user.empresa_id]
   );
   if (!c) return res.status(404).json({ error: 'Curso no encontrado' });
@@ -567,21 +566,14 @@ router.get('/:id/audio/:leccionId', async (req, res) => {
 
 router.post('/', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
-  const { titulo, objetivo, duracion, facilitador_id, competencias, habilidades, archivo_base64, archivo_nombre, imagen_base64, imagen_nombre } = req.body ?? {};
+  const { titulo, objetivo, duracion, competencias, habilidades, archivo_base64, archivo_nombre, imagen_base64, imagen_nombre } = req.body ?? {};
   if (!titulo?.trim()) return res.status(400).json({ error: 'Falta el título' });
-  if (facilitador_id) {
-    const { rows: [fac] } = await pool.query(
-      "SELECT id FROM usuarios WHERE id = $1 AND empresa_id = $2 AND rol = 'gestor_curso'",
-      [facilitador_id, req.user.empresa_id]
-    );
-    if (!fac) return res.status(404).json({ error: 'Facilitador no encontrado' });
-  }
 
   const { rows: [c] } = await pool.query(
-    `INSERT INTO cursos (empresa_id, titulo, objetivo, facilitador_id, competencias, habilidades, duracion)
-     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7)
+    `INSERT INTO cursos (empresa_id, titulo, objetivo, competencias, habilidades, duracion)
+     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6)
      RETURNING id, titulo, objetivo, estado`,
-    [req.user.empresa_id, titulo.trim(), objetivo ?? '', facilitador_id || null,
+    [req.user.empresa_id, titulo.trim(), objetivo ?? '',
      JSON.stringify(competencias ?? []), JSON.stringify(habilidades ?? []), duracion ?? '']
   );
 
@@ -611,19 +603,18 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
-  const { titulo, objetivo, duracion, facilitador_id, competencias, habilidades, estado, imagen_base64, imagen_nombre, archivo_base64, archivo_nombre } = req.body ?? {};
+  const { titulo, objetivo, duracion, competencias, habilidades, estado, imagen_base64, imagen_nombre, archivo_base64, archivo_nombre } = req.body ?? {};
   const { rows: [c] } = await pool.query(
     `UPDATE cursos SET
        titulo = COALESCE($3, titulo),
        objetivo = COALESCE($4, objetivo),
-       facilitador_id = COALESCE($5, facilitador_id),
-       competencias = COALESCE($6, competencias),
-       habilidades = COALESCE($8, habilidades),
-       estado = COALESCE($7, estado),
-       duracion = COALESCE($9, duracion)
+       competencias = COALESCE($5, competencias),
+       habilidades = COALESCE($7, habilidades),
+       estado = COALESCE($6, estado),
+       duracion = COALESCE($8, duracion)
      WHERE id = $1 AND empresa_id = $2 RETURNING id, titulo, objetivo, estado`,
     [req.params.id, req.user.empresa_id, titulo ?? null, objetivo ?? null,
-     facilitador_id || null, competencias != null ? JSON.stringify(competencias) : null, estado ?? null,
+     competencias != null ? JSON.stringify(competencias) : null, estado ?? null,
      habilidades != null ? JSON.stringify(habilidades) : null, duracion ?? null]
   );
   if (!c) return res.status(404).json({ error: 'Curso no encontrado' });

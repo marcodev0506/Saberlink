@@ -8,14 +8,13 @@ import TagSelect from '../components/TagSelect.vue';
 import WorkerCoursesPortal from '../components/WorkerCoursesPortal.vue';
 
 const cursos = ref([]);
-const gestoresDeCurso = ref([]);
 const error = ref('');
 const modal = ref(false);
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 const esTrabajador = user.rol === 'trabajador';
 const puedeCrear = user.rol === 'rrhh' || user.rol === 'gestor_curso';
 
-const f = ref({ titulo: '', objetivo: '', duracion: '', facilitador_id: '' });
+const f = ref({ titulo: '', objetivo: '', duracion: '' });
 const tags = ref({ competencias: [], habilidades: [] });
 const pdfFile = ref(null);
 const imgFile = ref(null);
@@ -41,12 +40,8 @@ const visibles = computed(() => filtrados.value.slice((pagina.value - 1) * POR_P
 watch(busqueda, () => { pagina.value = 1; });
 
 async function cargar() {
-  const [c, u] = await Promise.all([
-    get('/api/cursos'),
-    get('/api/usuarios').catch(() => ({ usuarios: [] })),
-  ]);
+  const c = await get('/api/cursos');
   cursos.value = c.cursos;
-  gestoresDeCurso.value = (u.usuarios || []).filter((x) => x.rol === 'gestor_curso');
   await cargarImagenes(visibles.value);
 }
 
@@ -76,7 +71,7 @@ function fileToB64(file) {
 
 function editar(c) {
   editando.value = c.id;
-  f.value = { titulo: c.titulo, objetivo: c.objetivo, duracion: c.duracion ?? '', facilitador_id: '' };
+  f.value = { titulo: c.titulo, objetivo: c.objetivo, duracion: c.duracion ?? '' };
   tags.value = { competencias: [...(c.competencias || [])], habilidades: [...(c.habilidades || [])] };
   modal.value = true;
 }
@@ -95,7 +90,7 @@ async function guardar() {
     }
     modal.value = false;
     editando.value = null;
-    f.value = { titulo: '', objetivo: '', duracion: '', facilitador_id: '' };
+    f.value = { titulo: '', objetivo: '', duracion: '' };
     tags.value = { competencias: [], habilidades: [] };
     pdfFile.value = null;
     imgFile.value = null;
@@ -173,15 +168,21 @@ onMounted(() => {
     <div v-if="modal === true" class="overlay" @click.self="modal = false">
       <div class="dialog">
         <h2>{{ editando ? 'Editar curso' : 'Nuevo curso' }}</h2>
-        <label>Imagen del curso <input type="file" accept="image/*" @change="onImg" /></label>
-        <label>Título <input v-model="f.titulo" placeholder="Inducción de seguridad" /></label>
-        <label>Objetivo general <textarea v-model="f.objetivo" rows="2" /></label>
-        <label>Duración <input v-model="f.duracion" placeholder="Ej. 2 horas" /></label>
-        <div class="tagfield" v-for="campo in ['habilidades','competencias']" :key="campo">
-          <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }} <span class="hint">(del banco central)</span></label>
-          <TagSelect :tipo="campo === 'competencias' ? 'competencia' : 'habilidad'" v-model="tags[campo]" />
+        <div class="form-row">
+          <label>Título <input v-model="f.titulo" placeholder="Inducción de seguridad" /></label>
+          <label>Duración <input v-model="f.duracion" placeholder="Ej. 2 horas" /></label>
         </div>
-        <label>Contenido (PDF o plantilla DOCX) <input type="file" accept=".pdf,.docx" @change="onFile" /></label>
+        <label>Objetivo general <textarea v-model="f.objetivo" rows="3" placeholder="Describe el propósito y alcance del curso" /></label>
+        <div class="form-row">
+          <div class="tagfield" v-for="campo in ['habilidades','competencias']" :key="campo">
+            <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }} <span class="hint">(del banco central)</span></label>
+            <TagSelect :tipo="campo === 'competencias' ? 'competencia' : 'habilidad'" v-model="tags[campo]" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Imagen del curso <input type="file" accept="image/*" @change="onImg" /></label>
+          <label>Contenido (PDF o plantilla DOCX) <input type="file" accept=".pdf,.docx" @change="onFile" /></label>
+        </div>
         <div class="dialog-actions">
           <button class="ghost" @click="modal = false">Cancelar</button>
           <button class="primary" :disabled="guardando" @click="guardar">{{ guardando ? 'Guardando…' : (editando ? 'Guardar cambios' : 'Guardar') }}</button>
@@ -190,7 +191,7 @@ onMounted(() => {
     </div>
 
     <div v-if="typeof modal === 'string'" class="overlay" @click.self="modal = false">
-      <div class="dialog">
+      <div class="dialog dialog-sm">
         <h2>Eliminar curso</h2>
         <p class="confirmtxt">Se eliminará el curso y sus materiales. Esta acción no se puede deshacer.</p>
         <div class="dialog-actions">
@@ -236,7 +237,6 @@ h1 { color: var(--navy); margin: 0; }
 .body { padding: 1.1rem; position: relative; }
 .body h3 { margin: 0; font-size: 1rem; color: var(--navy); }
 .body p { margin: .3rem 0; font-size: .82rem; color: #4b5563; text-transform: uppercase; }
-.fac { font-weight: 700; }
 .estado { position: absolute; top: .9rem; right: .9rem; font-size: .65rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; background: var(--cream); color: #4b5563; text-transform: uppercase; }
 .estado.listo, .estado.publicado { background: #dde6f0; color: var(--navy); }
 .estado.procesando { background: #fdeee3; color: var(--orange); }
@@ -246,12 +246,16 @@ h1 { color: var(--navy); margin: 0; }
 .hab { background: #dde6f0; color: var(--navy); }
 .del { margin-top: .4rem; border: 0; background: var(--cream); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
 
-.overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
-.dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 360px; display: flex; flex-direction: column; gap: 1rem; max-height: 88vh; overflow-y: auto; }
-.dialog h2 { margin: 0; font-size: 1.05rem; color: var(--navy); }
-.dialog label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: #374151; }
-.dialog input, .dialog select, .dialog textarea { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+.overlay { position: fixed; inset: 0; background: rgba(10,20,50,.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
+.dialog { background: #fff; border-radius: 18px; padding: 2rem 2.25rem; width: min(700px, 94vw); display: flex; flex-direction: column; gap: 1.15rem; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(10,20,50,.22); box-sizing: border-box; }
+.dialog-sm { width: min(420px, 92vw); }
+.dialog h2 { margin: 0 0 .2rem; font-size: 1.25rem; color: var(--navy); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+.dialog label { display: flex; flex-direction: column; gap: .4rem; font-size: .84rem; font-weight: 600; color: #374151; }
+.dialog input, .dialog select, .dialog textarea { padding: .68rem .85rem; border: 1.5px solid #d8dee9; border-radius: 10px; font-family: inherit; font-size: .9rem; }
+.dialog input:focus, .dialog select:focus, .dialog textarea:focus { outline: none; border-color: var(--navy); }
+.dialog-actions { display: flex; justify-content: flex-end; gap: .65rem; margin-top: .35rem; }
 .hint { font-weight: 400; color: #9aa3b5; }
-.tagfield label { font-size: .8rem; font-weight: 600; color: #374151; display: block; margin-bottom: .35rem; }
+.tagfield label { font-size: .84rem; font-weight: 600; color: #374151; display: block; margin-bottom: .4rem; }
+@media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
 </style>

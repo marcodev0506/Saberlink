@@ -8,6 +8,7 @@ import unidadesRouter from './routes/unidades.js';
 import cursosRouter from './routes/cursos.js';
 import catalogoRouter from './routes/catalogo.js';
 import certificadosRouter from './routes/certificados.js';
+import notificacionesRouter, { iniciarCronNotificaciones } from './routes/notificaciones.js';
 
 const app = express();
 app.use((req, res, next) => {
@@ -24,6 +25,7 @@ app.use('/api/unidades', unidadesRouter);
 app.use('/api/cursos', cursosRouter);
 app.use('/api/catalogo', catalogoRouter);
 app.use('/api/certificados', certificadosRouter);
+app.use('/api/notificaciones', notificacionesRouter);
 
 app.get('/health', async (_req, res) => {
   try {
@@ -65,7 +67,10 @@ app.post('/api/jobs/voz', async (req, res) => {
 
 const port = process.env.PORT || 3000;
 migrate()
-  .then(() => app.listen(port, () => console.log(`API listening on :${port}`)))
+  .then(() => {
+    app.listen(port, () => console.log(`API listening on :${port}`));
+    iniciarCronNotificaciones();
+  })
   .catch((err) => {
     console.error('migration failed:', err);
     process.exit(1);
