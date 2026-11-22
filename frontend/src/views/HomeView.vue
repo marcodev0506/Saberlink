@@ -26,11 +26,11 @@ onMounted(async () => {
         </router-link>
         <router-link v-if="user.rol === 'rrhh'" to="/usuarios" class="card">
           <h3>Usuarios</h3>
-          <p>Invita trabajadores y expertos, asígnales roles dentro de tu empresa.</p>
+          <p>Invita trabajadores y gestores de curso, asígnales roles dentro de tu empresa.</p>
         </router-link>
         <router-link to="/cursos" class="card">
           <h3>Cursos</h3>
-          <p>Catálogo de cursos — el experto sube el PDF y la IA genera guion, evaluaciones y audio.</p>
+          <p>Catálogo de cursos — el gestor de curso sube el PDF y la IA genera guion, evaluaciones y audio.</p>
         </router-link>
         <div class="card disabled">
           <h3>Certificados</h3>

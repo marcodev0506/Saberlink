@@ -24,7 +24,7 @@ router.get('/', requireRrhh, async (req, res) => {
 
 router.post('/', requireRrhh, async (req, res) => {
   const { nombre, email, password, rol } = req.body ?? {};
-  if (!['experto', 'trabajador', 'rrhh'].includes(rol)) return res.status(400).json({ error: 'Rol inválido' });
+  if (!['gestor_curso', 'trabajador', 'rrhh'].includes(rol)) return res.status(400).json({ error: 'Rol inválido' });
   if (!nombre || !email || !password) return res.status(400).json({ error: 'Faltan campos' });
   if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
 
@@ -64,7 +64,7 @@ router.post('/importar', requireRrhh, async (req, res) => {
     const email = String(r.correo ?? r.Correo ?? r.CORREO ?? r.email ?? r.Email ?? '').trim();
     const rol = String(r.rol ?? r.Rol ?? r.ROL ?? 'trabajador').trim().toLowerCase();
     if (!nombre || !email) { errores.push(`Fila ${i + 2}: falta nombre o correo`); continue; }
-    if (!['rrhh', 'experto', 'trabajador'].includes(rol)) { errores.push(`Fila ${i + 2}: rol inválido "${rol}"`); continue; }
+    if (!['rrhh', 'gestor_curso', 'trabajador'].includes(rol)) { errores.push(`Fila ${i + 2}: rol inválido "${rol}"`); continue; }
     try {
       await pool.query(
         `INSERT INTO usuarios (empresa_id, email, password_hash, nombre, rol, debe_cambiar_password)

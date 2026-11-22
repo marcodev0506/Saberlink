@@ -103,7 +103,7 @@ onMounted(cargar);
         <label>Rol
           <select v-model="rol">
             <option value="trabajador">Trabajador</option>
-            <option value="experto">Experto</option>
+            <option value="gestor_curso">Gestor de curso</option>
             <option value="rrhh">RRHH</option>
           </select>
         </label>
@@ -115,7 +115,7 @@ onMounted(cargar);
 
     <section class="card" v-show="tab === 'plantilla'">
       <h2>Importar desde Excel</h2>
-      <p class="hint">Sube la <a href="/plantilla_usuarios.xlsx" download>📄 plantilla</a> con columnas <b>nombre</b>, <b>correo</b> y <b>rol</b> (trabajador / experto / rrhh). Todos entran con contraseña <b>Saberlink123</b> y la cambian al primer inicio de sesión.</p>
+      <p class="hint">Sube la <a href="/plantilla_usuarios.xlsx" download>📄 plantilla</a> con columnas <b>nombre</b>, <b>correo</b> y <b>rol</b> (trabajador / gestor_curso / rrhh). Todos entran con contraseña <b>Saberlink123</b> y la cambian al primer inicio de sesión.</p>
       <input type="file" accept=".xlsx,.xls,.csv" :disabled="importando" @change="importar" />
       <p v-if="importando" class="loading"><span class="spinner" /> Importando usuarios…</p>
       <p v-else-if="importMsg" class="ok">{{ importMsg }}</p>
@@ -176,7 +176,7 @@ table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 th { text-align: left; color: #6b7280; font-size: .78rem; text-transform: uppercase; padding: .4rem .5rem; }
 td { padding: .55rem .5rem; border-top: 1px solid var(--cream); color: #1f2937; font-weight: 500; }
 .chip { padding: .15rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 700; background: #eef2ff; color: var(--navy); }
-.chip[data-rol='experto'] { background: #fdeee3; color: var(--orange); }
+.chip[data-rol='gestor_curso'] { background: #fdeee3; color: var(--orange); }
 .chip[data-rol='trabajador'] { background: #dde6f0; color: var(--navy); }
 .error { color: var(--danger); } .ok { color: var(--navy); }
 .hint { font-size: .85rem; color: #374151; }

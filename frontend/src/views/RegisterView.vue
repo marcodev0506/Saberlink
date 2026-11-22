@@ -42,7 +42,7 @@ async function submit() {
       <h2>Lleva la acreditación de tu empresa al siguiente nivel</h2>
       <p class="lead">Registra tu empresa con su RIF y crea tu espacio en minutos.</p>
       <ul>
-        <li>Roles: RRHH, Experto y Trabajador</li>
+        <li>Roles: RRHH, Gestor de curso y Trabajador</li>
         <li>Banco de preguntas y exámenes</li>
         <li>Certificados PDF con código QR</li>
       </ul>

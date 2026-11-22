@@ -7,7 +7,7 @@ import { mkdir, writeFile } from 'fs/promises';
 const router = Router();
 router.use(requireAuth);
 
-const puedeEditar = (rol) => rol === 'rrhh' || rol === 'experto';
+const puedeEditar = (rol) => rol === 'rrhh' || rol === 'gestor_curso';
 
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
@@ -80,12 +80,12 @@ router.get('/:id/audio/:leccionId', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Experto' });
+  if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
   const { titulo, objetivo, facilitador_id, competencias, archivo_base64, archivo_nombre, imagen_base64, imagen_nombre } = req.body ?? {};
   if (!titulo?.trim()) return res.status(400).json({ error: 'Falta el título' });
   if (facilitador_id) {
     const { rows: [fac] } = await pool.query(
-      "SELECT id FROM usuarios WHERE id = $1 AND empresa_id = $2 AND rol = 'experto'",
+      "SELECT id FROM usuarios WHERE id = $1 AND empresa_id = $2 AND rol = 'gestor_curso'",
       [facilitador_id, req.user.empresa_id]
     );
     if (!fac) return res.status(404).json({ error: 'Facilitador no encontrado' });
@@ -124,7 +124,7 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Experto' });
+  if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
   const { titulo, objetivo, facilitador_id, competencias, estado, imagen_base64, imagen_nombre } = req.body ?? {};
   const { rows: [c] } = await pool.query(
     `UPDATE cursos SET
@@ -179,7 +179,7 @@ router.get('/:id/intentos', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-  if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Experto' });
+  if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
   const { rowCount } = await pool.query(
     'DELETE FROM cursos WHERE id = $1 AND empresa_id = $2', [req.params.id, req.user.empresa_id]
   );

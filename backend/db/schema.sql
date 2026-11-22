@@ -14,12 +14,15 @@ CREATE TABLE IF NOT EXISTS usuarios (
   email         CITEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   nombre        TEXT NOT NULL,
-  rol           TEXT NOT NULL CHECK (rol IN ('rrhh', 'experto', 'trabajador')),
+  rol           TEXT NOT NULL CHECK (rol IN ('rrhh', 'gestor_curso', 'trabajador')),
   debe_cambiar_password BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS debe_cambiar_password BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check;
+UPDATE usuarios SET rol = 'gestor_curso' WHERE rol = 'experto';
+ALTER TABLE usuarios ADD CONSTRAINT usuarios_rol_check CHECK (rol IN ('rrhh', 'gestor_curso', 'trabajador'));
 
 -- Árbol organizacional genérico: cada empresa define sus propios tipos y niveles
 CREATE TABLE IF NOT EXISTS unidades (

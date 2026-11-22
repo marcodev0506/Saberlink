@@ -50,7 +50,7 @@ router.post('/register-empresa', async (req, res) => {
 router.post('/register', async (req, res) => {
   const { rif, nombre, email, password, rol } = req.body ?? {};
   if (!rif || !RIF_RE.test(rif)) return res.status(400).json({ error: 'RIF inválido' });
-  if (!['rrhh', 'experto', 'trabajador'].includes(rol)) return res.status(400).json({ error: 'Rol inválido' });
+  if (!['rrhh', 'gestor_curso', 'trabajador'].includes(rol)) return res.status(400).json({ error: 'Rol inválido' });
   if (!nombre || !email || !password) return res.status(400).json({ error: 'Faltan campos' });
 
   const rifNorm = rif.toUpperCase().replace('-', '');
