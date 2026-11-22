@@ -12,6 +12,7 @@ const error = ref('');
 const ok = ref('');
 const loading = ref(false);
 const importMsg = ref('');
+const tab = ref('registro');
 
 async function importar(ev) {
   const f = ev.target.files[0];
@@ -57,7 +58,13 @@ onMounted(cargar);
   <AppLayout>
     <h1>Usuarios de la empresa</h1>
 
-    <section class="card">
+    <nav class="tabs">
+      <button :class="{ active: tab === 'registro' }" @click="tab = 'registro'">Registrar usuario</button>
+      <button :class="{ active: tab === 'plantilla' }" @click="tab = 'plantilla'">Usar plantilla</button>
+      <button :class="{ active: tab === 'lista' }" @click="tab = 'lista'">Lista de usuarios</button>
+    </nav>
+
+    <section class="card" v-show="tab === 'registro'">
       <h2>Registrar usuario</h2>
       <form @submit.prevent="invitar" class="grid">
         <label>Nombre <input v-model="nombre" required /></label>
@@ -76,14 +83,14 @@ onMounted(cargar);
       <p v-if="ok" class="ok">{{ ok }}</p>
     </section>
 
-    <section class="card">
+    <section class="card" v-show="tab === 'plantilla'">
       <h2>Importar desde Excel</h2>
       <p class="hint">Sube la <a href="/plantilla_usuarios.xlsx" download>📄 plantilla</a> con columnas <b>nombre</b>, <b>correo</b> y <b>rol</b> (trabajador / experto / rrhh). Todos entran con contraseña <b>Saberlink123</b> y la cambian al primer inicio de sesión.</p>
       <input type="file" accept=".xlsx,.xls,.csv" @change="importar" />
       <p v-if="importMsg" class="ok">{{ importMsg }}</p>
     </section>
 
-    <section class="card">
+    <section class="card" v-show="tab === 'lista'">
       <table>
         <thead>
           <tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Alta</th></tr>
@@ -103,6 +110,9 @@ onMounted(cargar);
 
 <style scoped>
 h1 { color: var(--navy); }
+.tabs { display: flex; gap: .4rem; margin-top: 1.5rem; }
+.tabs button { padding: .55rem 1.1rem; border: 0; border-radius: 999px; background: #e8dcc4; color: var(--navy); font-weight: 700; cursor: pointer; font-size: .85rem; }
+.tabs button.active { background: var(--navy); color: #fff; }
 .card { background: #fff; border-radius: 14px; padding: 1.5rem; box-shadow: 0 6px 24px rgba(15,30,80,.08); margin-top: 1.5rem; }
 h2 { font-size: 1rem; margin: 0 0 1rem; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
