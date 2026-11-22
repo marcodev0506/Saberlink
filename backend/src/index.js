@@ -1,9 +1,12 @@
 import express from 'express';
 import { pool } from './db.js';
 import { publish } from './queue.js';
+import { migrate } from './migrate.js';
+import authRouter from './routes/auth.js';
 
 const app = express();
 app.use(express.json());
+app.use('/api/auth', authRouter);
 
 app.get('/health', async (_req, res) => {
   try {
@@ -29,4 +32,9 @@ app.post('/api/jobs/voz', async (req, res) => {
 });
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`API listening on :${port}`));
+migrate()
+  .then(() => app.listen(port, () => console.log(`API listening on :${port}`)))
+  .catch((err) => {
+    console.error('migration failed:', err);
+    process.exit(1);
+  });
