@@ -50,6 +50,38 @@ router.post('/', requireRrhh, async (req, res) => {
   res.status(201).json({ unidad: u });
 });
 
+// Crea la estructura desde una descripción en lenguaje natural (Ollama)
+router.post('/chat', requireRrhh, async (req, res) => {
+  const { texto } = req.body ?? {};
+  if (!texto?.trim()) return res.status(400).json({ error: 'Falta el texto' });
+  const url = process.env.OLLAMA_URL || 'http://ollama:11434';
+  const model = process.env.OLLAMA_MODEL || 'llama3.2:1b';
+  const prompt = `Convierte esta descripción de estructura organizacional en JSON.
+Descripción: "${texto}"
+Devuelve SOLO un JSON válido con esta forma, sin texto extra ni markdown:
+{"nombre":"Gerencia X","tipo":"gerencia","hijos":[{"nombre":"Líder","tipo":"unidad","hijos":[{"nombre":"Analista","tipo":"unidad","hijos":[]}]}]}
+Si la descripción menciona cantidades (ej "3 analistas"), genera esa cantidad de hijos con nombres numerados (Analista 1, Analista 2…).`;
+  const r = await fetch(`${url}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, prompt, stream: false, format: 'json' }),
+  });
+  if (!r.ok) return res.status(502).json({ error: `Ollama ${r.status}` });
+  const { response } = await r.json();
+  let tree;
+  try { tree = JSON.parse(response); } catch { return res.status(502).json({ error: 'La IA no devolvió JSON válido' }); }
+
+  async function insertar(nodo, parentId) {
+    const { rows: [u] } = await pool.query(
+      `INSERT INTO unidades (empresa_id, parent_id, nombre, tipo) VALUES ($1, $2, $3, $4) RETURNING id`,
+      [req.user.empresa_id, parentId, String(nodo.nombre ?? 'Unidad').trim(), String(nodo.tipo ?? 'unidad').trim()]
+    );
+    for (const h of nodo.hijos ?? []) await insertar(h, u.id);
+  }
+  await insertar(tree, null);
+  res.status(201).json({ ok: true });
+});
+
 router.put('/:id', requireRrhh, async (req, res) => {
   const { nombre, tipo, parent_id, descripcion, competencias, habilidades,
           cargo, nombre_apellido, ci, correo, orden, metadata } = req.body ?? {};
