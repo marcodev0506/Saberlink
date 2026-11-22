@@ -12,7 +12,7 @@ const puedeEditar = (rol) => rol === 'rrhh' || rol === 'experto';
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
     `SELECT c.id, c.titulo, c.objetivo, c.estado, c.competencias, c.audio_path,
-            c.facilitador_id, u.nombre AS facilitador
+            c.imagen_path, c.facilitador_id, u.nombre AS facilitador
      FROM cursos c LEFT JOIN usuarios u ON u.id = c.facilitador_id
      WHERE c.empresa_id = $1 ORDER BY c.created_at DESC`, [req.user.empresa_id]
   );
@@ -33,6 +33,15 @@ router.get('/:id', async (req, res) => {
   res.json({ curso: c, lecciones });
 });
 
+router.get('/:id/imagen', async (req, res) => {
+  const { rows: [c] } = await pool.query(
+    'SELECT imagen_path FROM cursos WHERE id = $1 AND empresa_id = $2',
+    [req.params.id, req.user.empresa_id]
+  );
+  if (!c?.imagen_path) return res.status(404).json({ error: 'Sin imagen' });
+  res.sendFile(c.imagen_path);
+});
+
 // Audio de una lección
 router.get('/:id/audio/:leccionId', async (req, res) => {
   const { rows: [l] } = await pool.query(
@@ -46,7 +55,7 @@ router.get('/:id/audio/:leccionId', async (req, res) => {
 
 router.post('/', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Experto' });
-  const { titulo, objetivo, facilitador_id, competencias, archivo_base64, archivo_nombre } = req.body ?? {};
+  const { titulo, objetivo, facilitador_id, competencias, archivo_base64, archivo_nombre, imagen_base64, imagen_nombre } = req.body ?? {};
   if (!titulo?.trim()) return res.status(400).json({ error: 'Falta el título' });
   if (facilitador_id) {
     const { rows: [fac] } = await pool.query(
@@ -76,12 +85,21 @@ router.post('/', async (req, res) => {
     await publish('ia.jobs', { type: 'guion', payload: { curso_id: c.id, pdf_path: path, empresa_id: req.user.empresa_id } });
     c.estado = 'procesando';
   }
+  if (imagen_base64) {
+    const ext = (imagen_nombre || 'imagen.png').split('.').pop().toLowerCase();
+    const dir = `${process.env.STORAGE_DIR}/imagenes`;
+    await mkdir(dir, { recursive: true });
+    const path = `${dir}/${c.id}.${ext}`;
+    const clean = imagen_base64.replace(/^data:.*;base64,/, '');
+    await writeFile(path, Buffer.from(clean, 'base64'));
+    await pool.query('UPDATE cursos SET imagen_path = $1 WHERE id = $2', [path, c.id]);
+  }
   res.status(201).json({ curso: c });
 });
 
 router.put('/:id', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Experto' });
-  const { titulo, objetivo, facilitador_id, competencias, estado } = req.body ?? {};
+  const { titulo, objetivo, facilitador_id, competencias, estado, imagen_base64, imagen_nombre } = req.body ?? {};
   const { rows: [c] } = await pool.query(
     `UPDATE cursos SET
        titulo = COALESCE($3, titulo),
@@ -94,6 +112,15 @@ router.put('/:id', async (req, res) => {
      facilitador_id ?? null, competencias != null ? JSON.stringify(competencias) : null, estado ?? null]
   );
   if (!c) return res.status(404).json({ error: 'Curso no encontrado' });
+  if (imagen_base64) {
+    const ext = (imagen_nombre || 'imagen.png').split('.').pop().toLowerCase();
+    const dir = `${process.env.STORAGE_DIR}/imagenes`;
+    await mkdir(dir, { recursive: true });
+    const path = `${dir}/${c.id}.${ext}`;
+    const clean = imagen_base64.replace(/^data:.*;base64,/, '');
+    await writeFile(path, Buffer.from(clean, 'base64'));
+    await pool.query('UPDATE cursos SET imagen_path = $1 WHERE id = $2', [path, c.id]);
+  }
   res.json({ curso: c });
 });
 

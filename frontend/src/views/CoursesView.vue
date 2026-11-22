@@ -1,6 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { get, post, del } from '../api.js';
+import { get, post, put, del } from '../api.js';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import AppLayout from '../components/AppLayout.vue';
 
 const cursos = ref([]);
@@ -12,6 +14,9 @@ const puedeCrear = user.rol === 'rrhh' || user.rol === 'experto';
 
 const f = ref({ titulo: '', objetivo: '', facilitador_id: '' });
 const pdfFile = ref(null);
+const imgFile = ref(null);
+const editando = ref(null);        // id del curso que se edita
+const imagenes = ref({});          // curso_id -> objectURL
 const guardando = ref(false);
 
 async function cargar() {
@@ -21,26 +26,51 @@ async function cargar() {
   ]);
   cursos.value = c.cursos;
   expertos.value = (u.usuarios || []).filter((x) => x.rol === 'experto');
+  const token = localStorage.getItem('token');
+  for (const cur of c.cursos) {
+    if (!cur.imagen_path) continue;
+    const r = await fetch(`${API}/api/cursos/${cur.id}/imagen`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) imagenes.value[cur.id] = URL.createObjectURL(await r.blob());
+  }
 }
 
 function onFile(e) { pdfFile.value = e.target.files[0] || null; }
+function onImg(e) { imgFile.value = e.target.files[0] || null; }
+
+function fileToB64(file) {
+  return new Promise(async (ok) => {
+    if (!file) return ok(null);
+    const buf = new Uint8Array(await file.arrayBuffer());
+    let b64 = '';
+    for (let i = 0; i < buf.length; i += 32768)
+      b64 += String.fromCharCode(...buf.subarray(i, i + 32768));
+    ok(btoa(b64));
+  });
+}
+
+function editar(c) {
+  editando.value = c.id;
+  f.value = { titulo: c.titulo, objetivo: c.objetivo, facilitador_id: '' };
+  modal.value = true;
+}
 
 async function guardar() {
   guardando.value = true;
   error.value = '';
   try {
-    let pdf_base64 = null;
-    if (pdfFile.value) {
-      const buf = new Uint8Array(await pdfFile.value.arrayBuffer());
-      pdf_base64 = '';
-      for (let i = 0; i < buf.length; i += 32768)
-        pdf_base64 += String.fromCharCode(...buf.subarray(i, i + 32768));
-      pdf_base64 = btoa(pdf_base64);
+    const archivo_base64 = await fileToB64(pdfFile.value);
+    const imagen_base64 = await fileToB64(imgFile.value);
+    const body = { ...f.value, archivo_base64, archivo_nombre: pdfFile.value?.name, imagen_base64, imagen_nombre: imgFile.value?.name };
+    if (editando.value) {
+      await put(`/api/cursos/${editando.value}`, body);
+    } else {
+      await post('/api/cursos', body);
     }
-    await post('/api/cursos', { ...f.value, archivo_base64: pdf_base64, archivo_nombre: pdfFile.value?.name });
     modal.value = false;
+    editando.value = null;
     f.value = { titulo: '', objetivo: '', facilitador_id: '' };
     pdfFile.value = null;
+    imgFile.value = null;
     await cargar();
   } catch (err) {
     error.value = err.message;
@@ -96,12 +126,15 @@ onMounted(cargar);
 
     <div class="grid">
       <article v-for="c in cursos" :key="c.id" class="card" @click="$router.push(`/cursos/${c.id}`)">
-        <div class="cover">IMAGEN REFERENCIAL DEL CURSO</div>
+        <div class="cover" :style="imagenes[c.id] ? { backgroundImage: `url(${imagenes[c.id]})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
+          <span v-if="!imagenes[c.id]">IMAGEN REFERENCIAL DEL CURSO</span>
+        </div>
         <div class="body">
           <h3>TÍTULO DEL CURSO: {{ c.titulo }}</h3>
           <p>{{ c.objetivo || 'OBJETIVO GENERAL DEL CURSO' }}</p>
           <p class="fac">FACILITADOR: {{ c.facilitador || '—' }}</p>
           <span class="estado" :class="c.estado">{{ c.estado }}</span>
+          <button v-if="puedeCrear" class="del" @click.stop="editar(c)">✎</button>
           <button v-if="puedeCrear" class="del" @click.stop="borrar(c)">🗑</button>
         </div>
       </article>
@@ -110,13 +143,14 @@ onMounted(cargar);
 
     <div v-if="modal === true" class="overlay" @click.self="modal = false">
       <div class="dialog">
-        <h2>Nuevo curso</h2>
+        <h2>{{ editando ? 'Editar curso' : 'Nuevo curso' }}</h2>
         <label>Título <input v-model="f.titulo" placeholder="Inducción de seguridad" /></label>
         <label>Objetivo general <textarea v-model="f.objetivo" rows="2" /></label>
-        <label>Contenido (PDF o plantilla DOCX) <input type="file" accept=".pdf,.docx" @change="onFile" /></label>
+        <label>Imagen del curso <input type="file" accept="image/*" @change="onImg" /></label>
+        <label v-if="!editando">Contenido (PDF o plantilla DOCX) <input type="file" accept=".pdf,.docx" @change="onFile" /></label>
         <div class="dialog-actions">
           <button class="ghost" @click="modal = false">Cancelar</button>
-          <button class="primary" :disabled="guardando" @click="guardar">{{ guardando ? 'Guardando…' : 'Guardar' }}</button>
+          <button class="primary" :disabled="guardando" @click="guardar">{{ guardando ? 'Guardando…' : (editando ? 'Guardar cambios' : 'Guardar') }}</button>
         </div>
       </div>
     </div>

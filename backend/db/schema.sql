@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS cursos (
   guion         TEXT NOT NULL DEFAULT '',
   evaluaciones  JSONB NOT NULL DEFAULT '[]'::jsonb,
   audio_path    TEXT NOT NULL DEFAULT '',
+  imagen_path   TEXT NOT NULL DEFAULT '',
   estado        TEXT NOT NULL DEFAULT 'borrador' CHECK (estado IN ('borrador','procesando','listo','publicado')),
   competencias  JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -68,4 +69,5 @@ CREATE TABLE IF NOT EXISTS lecciones (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS lecciones_curso_idx ON lecciones(curso_id, orden);
+ALTER TABLE cursos ADD COLUMN IF NOT EXISTS imagen_path TEXT NOT NULL DEFAULT '';
 
