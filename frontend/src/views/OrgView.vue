@@ -8,6 +8,7 @@ import TagSelect from '../components/TagSelect.vue';
 const arbol = ref([]);
 const usuariosEmpresa = ref([]);
 const error = ref('');
+const modalError = ref('');
 const modal = ref(null);        // { mode: 'card'|'perfil'|'confirm', padre?, node? }
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 const esRrhh = user.rol === 'rrhh';
@@ -38,12 +39,14 @@ function seleccionarUsuario(u) {
   f.value.nombre_apellido = u.nombre;
   f.value.correo = u.email;
   mostrarSug.value = false;
+  modalError.value = '';
 }
 
 function fmtCi(e) {
   const digits = e.target.value.replace(/[^0-9]/g, '');
   f.value.ci = digits ? 'V-' + digits : '';
   f.value.usuario_id = null;
+  modalError.value = '';
   mostrarSug.value = true;
   if (digits.length >= 5) {
     const exacto = usuariosEmpresa.value.find(
@@ -53,11 +56,24 @@ function fmtCi(e) {
   }
 }
 
+function onNombreInput() {
+  modalError.value = '';
+  mostrarSug.value = true;
+  if (f.value.usuario_id) {
+    const vinculado = usuariosEmpresa.value.find((u) => u.id === f.value.usuario_id);
+    if (!vinculado || vinculado.nombre.trim().toLowerCase() !== f.value.nombre_apellido.trim().toLowerCase()) {
+      f.value.usuario_id = null;
+    }
+  }
+}
+
 function onCorreoInput() {
+  modalError.value = '';
   const q = f.value.correo.trim().toLowerCase();
   if (!q) { f.value.usuario_id = null; return; }
   const exacto = usuariosEmpresa.value.find((u) => u.email.toLowerCase() === q);
   if (exacto) seleccionarUsuario(exacto);
+  else f.value.usuario_id = null;
 }
 
 const sugerencias = computed(() => {
@@ -93,14 +109,16 @@ function toggle(id) {
 function abrirCard(padre = null, node = null) {
   modal.value = { mode: 'card', padre, node };
   mostrarSug.value = false;
+  modalError.value = '';
   f.value = node
-    ? { cargo: node.cargo || node.nombre, usuario_id: node.usuario_id || null, nombre_apellido: node.nombre_apellido, ci: node.ci, correo: node.correo }
+    ? { cargo: node.cargo || node.nombre, usuario_id: node.usuario_id || null, nombre_apellido: node.nombre_apellido || '', ci: node.ci || '', correo: node.correo || '' }
     : { cargo: '', usuario_id: null, nombre_apellido: '', ci: '', correo: '' };
   tipoDraft.value = node?.tipo || 'unidad';
 }
 
 function abrirPerfil(node) {
   modal.value = { mode: 'perfil', node };
+  modalError.value = '';
   p.value = {
     descripcion: node.descripcion || '',
     competencias: [...(node.competencias || [])],
@@ -110,16 +128,42 @@ function abrirPerfil(node) {
 
 async function guardar() {
   error.value = '';
+  modalError.value = '';
   try {
     if (modal.value.mode === 'card') {
+      const ciVal = (f.value.ci || '').trim();
+      const nomVal = (f.value.nombre_apellido || '').trim();
+      const corVal = (f.value.correo || '').trim();
+      const tieneDatosPersona = Boolean(ciVal || nomVal || corVal);
+
+      if (tieneDatosPersona) {
+        let vinculado = usuariosEmpresa.value.find((u) => u.id === f.value.usuario_id);
+        if (!vinculado && corVal) {
+          vinculado = usuariosEmpresa.value.find((u) => u.email.toLowerCase() === corVal.toLowerCase());
+        }
+        if (!vinculado && ciVal) {
+          const digits = ciVal.replace(/[^0-9]/g, '');
+          if (digits) {
+            vinculado = usuariosEmpresa.value.find((u) => u.ci && u.ci.replace(/[^0-9]/g, '') === digits);
+          }
+        }
+        if (!vinculado) {
+          modalError.value = 'No se puede registrar esta persona en el puesto porque primero debe estar registrada en el módulo de Usuarios.';
+          return;
+        }
+        f.value.usuario_id = vinculado.id;
+      } else {
+        f.value.usuario_id = null;
+      }
+
       const payload = {
         nombre: f.value.cargo.trim(),
         cargo: f.value.cargo.trim(),
         tipo: tipoDraft.value,
         usuario_id: f.value.usuario_id || null,
-        nombre_apellido: f.value.nombre_apellido,
-        ci: f.value.ci,
-        correo: f.value.correo,
+        nombre_apellido: nomVal,
+        ci: ciVal,
+        correo: corVal,
       };
       if (modal.value.node) {
         await put(`/api/unidades/${modal.value.node.id}`, payload);
@@ -135,7 +179,9 @@ async function guardar() {
     }
     modal.value = null;
     await cargar();
-  } catch (err) { error.value = err.message; }
+  } catch (err) {
+    modalError.value = err.message;
+  }
 }
 
 function borrar(node) { modal.value = { mode: 'confirm', node }; }
@@ -213,7 +259,7 @@ onMounted(cargar);
             </ul>
           </div>
           <div class="form-row">
-            <label>Nombre y Apellido <input v-model="f.nombre_apellido" @focus="mostrarSug = true" /></label>
+            <label>Nombre y Apellido <input v-model="f.nombre_apellido" @input="onNombreInput" @focus="mostrarSug = true" /></label>
             <label>Correo <input v-model="f.correo" type="email" @input="onCorreoInput" /></label>
           </div>
           <p v-if="f.usuario_id" class="linked-ok">✓ Vinculado a usuario registrado en la empresa</p>
@@ -237,6 +283,9 @@ onMounted(cargar);
             </div>
           </div>
         </template>
+        <div v-if="modalError && (modal.mode === 'card' || modal.mode === 'perfil')" class="modal-alert" role="alert">
+          ⚠ {{ modalError }}
+        </div>
         <div v-if="modal.mode === 'card' || modal.mode === 'perfil'" class="dialog-actions">
           <button class="ghost" @click="modal = null">Cancelar</button>
           <button class="primary" @click="guardar">Guardar</button>
@@ -291,4 +340,9 @@ h1 { color: var(--navy); margin: 0; }
 .ac-list li:hover { background: #f1f5f9; }
 .ac-list small { display: block; color: #64748b; font-size: .7rem; }
 .linked-ok { margin: -.4rem 0 0; font-size: .74rem; font-weight: 700; color: #15803d; }
+.modal-alert {
+  padding: .72rem .9rem; border-radius: 10px;
+  background: #fef2f2; border: 1.5px solid #fca5a5; color: #b91c1c;
+  font-size: .84rem; font-weight: 600; line-height: 1.35;
+}
 </style>

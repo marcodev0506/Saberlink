@@ -28,23 +28,32 @@ router.get('/', async (req, res) => {
 });
 
 async function resolveUsuarioId(empresaId, usuarioId, correo, ci) {
-  if (usuarioId) return usuarioId;
+  if (usuarioId) {
+    const { rows: [u] } = await pool.query(
+      'SELECT id FROM usuarios WHERE id = $1 AND empresa_id = $2 AND activo = true LIMIT 1',
+      [usuarioId, empresaId]
+    );
+    if (u) return u.id;
+  }
   if (correo?.trim()) {
     const { rows: [u] } = await pool.query(
-      'SELECT id FROM usuarios WHERE empresa_id = $1 AND LOWER(TRIM(email)) = LOWER(TRIM($2)) LIMIT 1',
+      'SELECT id FROM usuarios WHERE empresa_id = $1 AND activo = true AND LOWER(TRIM(email)) = LOWER(TRIM($2)) LIMIT 1',
       [empresaId, correo]
     );
     if (u) return u.id;
   }
   if (ci?.trim()) {
     const { rows: [u] } = await pool.query(
-      'SELECT id FROM usuarios WHERE empresa_id = $1 AND UPPER(TRIM(ci)) = UPPER(TRIM($2)) LIMIT 1',
+      'SELECT id FROM usuarios WHERE empresa_id = $1 AND activo = true AND UPPER(TRIM(ci)) = UPPER(TRIM($2)) LIMIT 1',
       [empresaId, ci]
     );
     if (u) return u.id;
   }
   return null;
 }
+
+const ERR_USUARIO_NO_REGISTRADO =
+  'No se puede registrar esta persona porque primero debe estar registrada en el módulo de Usuarios.';
 
 router.post('/', requireRrhh, async (req, res) => {
   const { nombre, tipo, parent_id, usuario_id, descripcion, competencias, habilidades,
@@ -56,7 +65,11 @@ router.post('/', requireRrhh, async (req, res) => {
     );
     if (!parent) return res.status(404).json({ error: 'Unidad padre no encontrada' });
   }
+  const tieneDatosPersona = Boolean(ci?.trim() || nombre_apellido?.trim() || correo?.trim());
   const resolvedUid = await resolveUsuarioId(req.user.empresa_id, usuario_id, correo, ci);
+  if (tieneDatosPersona && !resolvedUid) {
+    return res.status(400).json({ error: ERR_USUARIO_NO_REGISTRADO });
+  }
   const { rows: [u] } = await pool.query(
     `INSERT INTO unidades (empresa_id, parent_id, usuario_id, nombre, tipo, descripcion, competencias, habilidades,
                            cargo, nombre_apellido, ci, correo, orden, metadata)
@@ -198,9 +211,15 @@ Descripción: "${texto}"`;
 router.put('/:id', requireRrhh, async (req, res) => {
   const { nombre, tipo, parent_id, usuario_id, descripcion, competencias, habilidades,
           cargo, nombre_apellido, ci, correo, orden, metadata } = req.body ?? {};
-  const resolvedUid = (usuario_id !== undefined || correo !== undefined || ci !== undefined)
+  const actualizaPersona =
+    usuario_id !== undefined || correo !== undefined || ci !== undefined || nombre_apellido !== undefined;
+  const tieneDatosPersona = Boolean(ci?.trim() || nombre_apellido?.trim() || correo?.trim());
+  const resolvedUid = actualizaPersona
     ? await resolveUsuarioId(req.user.empresa_id, usuario_id, correo, ci)
     : null;
+  if (actualizaPersona && tieneDatosPersona && !resolvedUid) {
+    return res.status(400).json({ error: ERR_USUARIO_NO_REGISTRADO });
+  }
   const { rows: [u] } = await pool.query(
     `UPDATE unidades SET
        nombre      = COALESCE($3, nombre),
@@ -215,7 +234,7 @@ router.put('/:id', requireRrhh, async (req, res) => {
        orden       = COALESCE($12, orden),
        metadata    = COALESCE($13, metadata),
        parent_id   = COALESCE($14, parent_id),
-       usuario_id  = COALESCE($15, usuario_id)
+       usuario_id  = CASE WHEN $16::boolean THEN $15 ELSE usuario_id END
      WHERE id = $1 AND empresa_id = $2
      RETURNING id, parent_id, usuario_id, nombre, tipo, descripcion, competencias, habilidades,
                cargo, nombre_apellido, ci, correo, orden, metadata`,
@@ -223,7 +242,7 @@ router.put('/:id', requireRrhh, async (req, res) => {
      descripcion ?? null, competencias != null ? JSON.stringify(competencias) : null,
      habilidades != null ? JSON.stringify(habilidades) : null,
      cargo ?? null, nombre_apellido ?? null, ci ?? null, correo ?? null,
-     orden ?? null, metadata != null ? JSON.stringify(metadata) : null, parent_id ?? null, resolvedUid]
+     orden ?? null, metadata != null ? JSON.stringify(metadata) : null, parent_id ?? null, resolvedUid, actualizaPersona]
   );
   if (!u) return res.status(404).json({ error: 'Unidad no encontrada' });
   if (u.usuario_id && ci?.trim()) {
