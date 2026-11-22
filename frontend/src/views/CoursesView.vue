@@ -113,12 +113,6 @@ onMounted(cargar);
         <h2>Nuevo curso</h2>
         <label>Título <input v-model="f.titulo" placeholder="Inducción de seguridad" /></label>
         <label>Objetivo general <textarea v-model="f.objetivo" rows="2" /></label>
-        <label>Facilitador (experto)
-          <select v-model="f.facilitador_id">
-            <option value="">—</option>
-            <option v-for="e in expertos" :key="e.id" :value="e.id">{{ e.nombre }}</option>
-          </select>
-        </label>
         <label>Contenido (PDF o plantilla DOCX) <input type="file" accept=".pdf,.docx" @change="onFile" /></label>
         <div class="dialog-actions">
           <button class="ghost" @click="modal = false">Cancelar</button>
