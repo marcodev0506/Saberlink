@@ -117,6 +117,7 @@ onMounted(cargar);
 
 <template>
   <AppLayout>
+    <div class="board">
     <header class="top">
       <div>
         <h1>Estructura organizacional</h1>
@@ -175,6 +176,7 @@ onMounted(cargar);
         </div>
       </div>
     </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -192,11 +194,11 @@ h1 { color: var(--navy); margin: 0; }
 .chat { display: flex; gap: .5rem; align-items: flex-start; margin-top: 1.2rem; background: #fff; border-radius: 14px; padding: .9rem; box-shadow: 0 4px 16px rgba(15,30,80,.1); }
 .chat textarea { flex: 1; border: 1.5px solid #e2e6f0; border-radius: 8px; padding: .55rem; font-family: inherit; resize: vertical; }
 .chatmsg { font-size: .8rem; color: var(--navy); margin: 0; align-self: center; }
-.canvas {
-  margin-top: 1.5rem; border-radius: 16px; padding: 2rem;
+.board {
+  margin: -1.5rem -1rem -3rem; padding: 1.5rem 2rem 3rem; min-height: calc(100vh - 60px);
   background: url('/pizarra.jpg') repeat; background-size: 560px;
-  border: 1px solid #e2e6f0; box-shadow: inset 0 2px 12px rgba(15,30,80,.06);
 }
+.canvas { padding: 1rem 0; }
 .tree { list-style: none; margin-top: 0; padding: 0; margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: center; }
 .tree > li { display: flex; flex-direction: column; align-items: center; }
 
