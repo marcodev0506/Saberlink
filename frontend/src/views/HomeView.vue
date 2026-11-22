@@ -30,6 +30,9 @@ function logout() {
     <h1>Saberlink</h1>
     <template v-if="user">
       <p>Bienvenido, <strong>{{ user.nombre }}</strong> ({{ user.rol }}) — {{ user.empresa }} ({{ user.rif }})</p>
+      <nav class="nav">
+        <router-link v-if="user.rol === 'rrhh'" to="/usuarios">Gestionar usuarios</router-link>
+      </nav>
       <button @click="logout">Cerrar sesión</button>
     </template>
     <p v-else>{{ error || 'Cargando…' }}</p>

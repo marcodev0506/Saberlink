@@ -3,10 +3,12 @@ import { pool } from './db.js';
 import { publish } from './queue.js';
 import { migrate } from './migrate.js';
 import authRouter from './routes/auth.js';
+import usuariosRouter from './routes/usuarios.js';
 
 const app = express();
 app.use(express.json());
 app.use('/api/auth', authRouter);
+app.use('/api/usuarios', usuariosRouter);
 
 app.get('/health', async (_req, res) => {
   try {
