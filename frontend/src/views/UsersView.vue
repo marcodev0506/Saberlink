@@ -4,12 +4,20 @@ import { get, post } from '../api.js';
 import AppLayout from '../components/AppLayout.vue';
 
 const usuarios = ref([]);
+const empresas = ref([]);
+const empresa_id = ref('');
 const nombre = ref('');
+const ci = ref('');
 const email = ref('');
 const password = ref('');
 const rol = ref('trabajador');
 const error = ref('');
 const ok = ref('');
+
+function fmtCi(e) {
+  const digits = e.target.value.replace(/[^0-9]/g, '');
+  ci.value = digits ? 'V-' + digits : '';
+}
 const loading = ref(false);
 const importMsg = ref('');
 const importando = ref(false);
@@ -60,8 +68,13 @@ async function importar(ev) {
 }
 
 async function cargar() {
-  const data = await get('/api/usuarios');
+  const [data, empData] = await Promise.all([
+    get('/api/usuarios'),
+    get('/api/usuarios/empresa').catch(() => ({ empresas: [] })),
+  ]);
   usuarios.value = data.usuarios;
+  empresas.value = empData.empresas || [];
+  if (!empresa_id.value && empresas.value.length) empresa_id.value = empresas.value[0].id;
 }
 
 async function invitar() {
@@ -69,9 +82,16 @@ async function invitar() {
   ok.value = '';
   loading.value = true;
   try {
-    await post('/api/usuarios', { nombre: nombre.value, email: email.value, password: password.value, rol: rol.value });
+    await post('/api/usuarios', {
+      nombre: nombre.value,
+      ci: ci.value,
+      email: email.value,
+      password: password.value,
+      rol: rol.value,
+      empresa_id: empresa_id.value,
+    });
     ok.value = `Usuario ${nombre.value} creado`;
-    nombre.value = email.value = password.value = '';
+    nombre.value = ci.value = email.value = password.value = '';
     rol.value = 'trabajador';
     await cargar();
   } catch (err) {
@@ -97,8 +117,14 @@ onMounted(cargar);
     <section class="card" v-show="tab === 'registro'">
       <h2>Registrar usuario</h2>
       <form @submit.prevent="invitar" class="grid">
-        <label>Nombre <input v-model="nombre" required /></label>
+        <label>Cédula (CI) <input :value="ci" @input="fmtCi" placeholder="V-12345678" inputmode="numeric" /></label>
+        <label>Nombre y Apellido <input v-model="nombre" required /></label>
         <label>Correo <input v-model="email" type="email" required /></label>
+        <label>Empresa
+          <select v-model="empresa_id" required>
+            <option v-for="e in empresas" :key="e.id" :value="e.id">{{ e.nombre }} ({{ e.rif }})</option>
+          </select>
+        </label>
         <label>Contraseña temporal <input v-model="password" type="password" required minlength="8" /></label>
         <label>Rol
           <select v-model="rol">
@@ -115,7 +141,7 @@ onMounted(cargar);
 
     <section class="card" v-show="tab === 'plantilla'">
       <h2>Importar desde Excel</h2>
-      <p class="hint">Sube la <a href="/plantilla_usuarios.xlsx" download>📄 plantilla</a> con columnas <b>nombre</b>, <b>correo</b> y <b>rol</b> (trabajador / gestor_curso / rrhh). Todos entran con contraseña <b>Saberlink123</b> y la cambian al primer inicio de sesión.</p>
+      <p class="hint">Sube la <a href="/plantilla_usuarios.xlsx" download>📄 plantilla</a> con columnas <b>nombre</b>, <b>correo</b>, <b>rol</b> (trabajador / gestor_curso / rrhh) y opcionalmente <b>ci</b> (cédula). Todos entran con contraseña <b>Saberlink123</b> y la cambian al primer inicio de sesión.</p>
       <input type="file" accept=".xlsx,.xls,.csv" :disabled="importando" @change="importar" />
       <p v-if="importando" class="loading"><span class="spinner" /> Importando usuarios…</p>
       <p v-else-if="importMsg" class="ok">{{ importMsg }}</p>
@@ -126,14 +152,16 @@ onMounted(cargar);
         <thead>
           <tr>
             <th><input type="checkbox" :checked="todosMarcados" @change="toggleTodos" /></th>
-            <th>Nombre</th><th>Correo</th><th>Rol</th><th>Alta</th>
+            <th>Cédula</th><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Rol</th><th>Alta</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="u in usuariosPagina" :key="u.id">
             <td><input v-if="u.id !== yoId" type="checkbox" :checked="seleccion.has(u.id)" @change="toggleUno(u.id)" /></td>
+            <td>{{ u.ci || '—' }}</td>
             <td>{{ u.nombre }}</td>
             <td>{{ u.email }}</td>
+            <td>{{ u.empresa || '—' }}</td>
             <td><span class="chip" :data-rol="u.rol">{{ u.rol }}</span></td>
             <td>{{ new Date(u.created_at).toLocaleDateString() }}</td>
           </tr>

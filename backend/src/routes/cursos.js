@@ -8,6 +8,51 @@ const router = Router();
 router.use(requireAuth);
 
 const puedeEditar = (rol) => rol === 'rrhh' || rol === 'gestor_curso';
+const normTag = (s) => String(s || '').trim().toLowerCase();
+
+async function getPerfilPuesto(empresaId, userId) {
+  const [{ rows: [user] }, { rows: unidades }] = await Promise.all([
+    pool.query(
+      `SELECT u.id, u.nombre, u.email, u.ci, u.rol, e.nombre AS empresa, e.rif
+       FROM usuarios u JOIN empresas e ON e.id = u.empresa_id
+       WHERE u.id = $1 AND u.empresa_id = $2`,
+      [userId, empresaId]
+    ),
+    pool.query(
+      `SELECT id, parent_id, usuario_id, nombre, tipo, cargo, nombre_apellido, ci, correo, competencias, habilidades
+       FROM unidades WHERE empresa_id = $1`,
+      [empresaId]
+    ),
+  ]);
+  if (!user) return null;
+  const byId = new Map(unidades.map((u) => [u.id, u]));
+  const emailN = normTag(user.email);
+  const ciN = normTag(user.ci);
+  const nameN = normTag(user.nombre);
+  const unit = unidades.find((u) => u.usuario_id === user.id)
+    || unidades.find((u) => normTag(u.correo) === emailN)
+    || (ciN ? unidades.find((u) => normTag(u.ci) === ciN) : null)
+    || unidades.find((u) => normTag(u.nombre_apellido) === nameN)
+    || null;
+  const parent = unit?.parent_id ? byId.get(unit.parent_id) : null;
+  return {
+    ...user,
+    ci: user.ci || unit?.ci || '',
+    cargo: unit ? (unit.cargo || unit.nombre) : '',
+    unidad: parent ? (parent.cargo || parent.nombre) : (unit?.tipo || ''),
+    competencias_puesto: Array.isArray(unit?.competencias) ? unit.competencias : [],
+    habilidades_puesto: Array.isArray(unit?.habilidades) ? unit.habilidades : [],
+    tiene_puesto: Boolean(unit),
+  };
+}
+
+function matchRelacion(curso, compSet, habSet) {
+  const cComp = Array.isArray(curso.competencias) ? curso.competencias : [];
+  const cHab = Array.isArray(curso.habilidades) ? curso.habilidades : [];
+  const matchComp = cComp.filter((x) => compSet.has(normTag(x)));
+  const matchHab = cHab.filter((x) => habSet.has(normTag(x)));
+  return { matchComp, matchHab, relacionado: matchComp.length > 0 || matchHab.length > 0 };
+}
 
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
@@ -16,7 +61,220 @@ router.get('/', async (req, res) => {
      FROM cursos c LEFT JOIN usuarios u ON u.id = c.facilitador_id
      WHERE c.empresa_id = $1 ORDER BY c.created_at DESC`, [req.user.empresa_id]
   );
+  if (req.user.rol === 'trabajador') {
+    const perfil = await getPerfilPuesto(req.user.empresa_id, req.user.sub);
+    const compSet = new Set((perfil?.competencias_puesto || []).map(normTag));
+    const habSet = new Set((perfil?.habilidades_puesto || []).map(normTag));
+    const filtrados = rows.filter((c) => matchRelacion(c, compSet, habSet).relacionado);
+    return res.json({ cursos: filtrados });
+  }
   res.json({ cursos: rows });
+});
+
+// Portal de Cursos y Acreditación del Trabajador
+router.get('/mi-portal', async (req, res) => {
+  const empresaId = req.user.empresa_id;
+  const userId = req.user.sub;
+
+  const perfil = await getPerfilPuesto(empresaId, userId);
+  if (!perfil) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+  const [cursosRes, leccionesRes, intentosRes, certsRes, audioRes] = await Promise.all([
+    pool.query(
+      `SELECT c.id, c.titulo, c.objetivo, c.estado, c.competencias, c.habilidades,
+              c.imagen_path, c.duracion, c.facilitador_id, u.nombre AS facilitador
+       FROM cursos c LEFT JOIN usuarios u ON u.id = c.facilitador_id
+       WHERE c.empresa_id = $1 ORDER BY c.created_at DESC`,
+      [empresaId]
+    ),
+    pool.query(
+      `SELECT l.curso_id, COUNT(*)::int AS total
+       FROM lecciones l JOIN cursos c ON c.id = l.curso_id
+       WHERE c.empresa_id = $1 GROUP BY l.curso_id`,
+      [empresaId]
+    ),
+    pool.query(
+      `SELECT i.id, i.curso_id, i.puntaje, i.total, i.aprobado, i.tipo, i.created_at
+       FROM intentos i JOIN cursos c ON c.id = i.curso_id
+       WHERE i.usuario_id = $1 AND c.empresa_id = $2
+       ORDER BY i.created_at ASC`,
+      [userId, empresaId]
+    ),
+    pool.query(
+      `SELECT ce.codigo, ce.curso_id, ce.puntaje, ce.total, ce.created_at,
+              c.titulo AS curso, c.duracion, c.competencias, c.habilidades
+       FROM certificados ce JOIN cursos c ON c.id = ce.curso_id
+       WHERE ce.usuario_id = $1 AND ce.empresa_id = $2
+       ORDER BY ce.created_at DESC`,
+      [userId, empresaId]
+    ),
+    pool.query(
+      `SELECT curso_id, COUNT(*)::int AS reproducidos, MAX(created_at) AS ultimo_audio
+       FROM progreso_audio
+       WHERE usuario_id = $1
+       GROUP BY curso_id`,
+      [userId]
+    ),
+  ]);
+
+  const leccCount = new Map(leccionesRes.rows.map((r) => [r.curso_id, r.total]));
+  const certByCurso = new Map(certsRes.rows.map((ce) => [ce.curso_id, ce]));
+  const audioByCurso = new Map(audioRes.rows.map((a) => [a.curso_id, a]));
+
+  // Agrupar intentos del trabajador por curso
+  const intentosByCurso = new Map();
+  for (const it of intentosRes.rows) {
+    if (!intentosByCurso.has(it.curso_id)) {
+      intentosByCurso.set(it.curso_id, { diag: null, final: null, count: 0, ultima_fecha: null });
+    }
+    const g = intentosByCurso.get(it.curso_id);
+    g.count++;
+    g.ultima_fecha = it.created_at;
+    if (it.tipo === 'diagnostico') {
+      if (!g.diag) g.diag = it;
+    } else if (it.tipo === 'teorica' || it.tipo === 'final') {
+      if (!g.final || it.aprobado || !g.final.aprobado) g.final = it;
+    }
+  }
+
+  const pct = (p, t) => (t > 0 ? Math.round((p / t) * 1000) / 10 : null);
+  const compSet = new Set(perfil.competencias_puesto.map(normTag));
+  const habSet = new Set(perfil.habilidades_puesto.map(normTag));
+
+  // Solo cursos que comparten al menos una competencia o habilidad con el puesto del trabajador
+  const cursosRelacionados = [];
+  for (const c of cursosRes.rows) {
+    const { matchComp, matchHab, relacionado } = matchRelacion(c, compSet, habSet);
+    if (!relacionado) continue;
+
+    const info = intentosByCurso.get(c.id) || null;
+    const ce = certByCurso.get(c.id) || null;
+    const audioInfo = audioByCurso.get(c.id) || null;
+    const reprodujoAudio = Boolean(audioInfo && audioInfo.reproducidos > 0);
+    const modulosTotal = leccCount.get(c.id) || 0;
+    const acreditado = Boolean(ce || info?.final?.aprobado);
+    const enProgreso = !acreditado && Boolean(info || reprodujoAudio);
+
+    const diagPct = info?.diag ? pct(info.diag.puntaje, info.diag.total) : null;
+    const finalPct = info?.final ? pct(info.final.puntaje, info.final.total) : (ce ? pct(ce.puntaje, ce.total) : null);
+
+    // Progreso porcentual real por hitos:
+    // Diagnóstica = 30% | Reprodujo audio del curso = 60% | Evaluación final = 100%
+    let progresoPct = 0;
+    if (acreditado || info?.final) progresoPct = 100;
+    else if (reprodujoAudio) progresoPct = 60;
+    else if (info?.diag) progresoPct = 30;
+
+    const modulosCompletados = (acreditado || info?.final)
+      ? modulosTotal
+      : Math.min(modulosTotal, audioInfo?.reproducidos || 0);
+    const nivel = (matchComp.length + matchHab.length) >= 2 ? 'Prioritario' : 'Recomendado';
+
+    cursosRelacionados.push({
+      id: c.id,
+      titulo: c.titulo,
+      objetivo: c.objetivo,
+      duracion: c.duracion || '',
+      estado: c.estado,
+      imagen_path: c.imagen_path || '',
+      facilitador: c.facilitador || 'Facilitador Saberlink',
+      competencias: Array.isArray(c.competencias) ? c.competencias : [],
+      habilidades: Array.isArray(c.habilidades) ? c.habilidades : [],
+      match_competencias: matchComp,
+      match_habilidades: matchHab,
+      nivel,
+      modulos_total: modulosTotal,
+      modulos_completados: modulosCompletados,
+      progreso_pct: progresoPct,
+      diag_puntaje: info?.diag?.puntaje ?? null,
+      diag_total: info?.diag?.total ?? null,
+      diag_pct: diagPct,
+      final_puntaje: info?.final?.puntaje ?? ce?.puntaje ?? null,
+      final_total: info?.final?.total ?? ce?.total ?? null,
+      final_pct: finalPct,
+      acreditado,
+      en_progreso: enProgreso,
+      certificado: ce?.codigo ?? null,
+      ultima_fecha: info?.ultima_fecha ?? ce?.created_at ?? null,
+    });
+  }
+
+  const cursosEnCurso = cursosRelacionados.filter((c) => c.en_progreso);
+  const cursosCompletados = cursosRelacionados.filter((c) => c.acreditado);
+  const cursosDisponibles = cursosRelacionados.filter((c) => !c.en_progreso && !c.acreditado);
+
+  const avanceGeneralPct = cursosRelacionados.length
+    ? Math.round(cursosRelacionados.reduce((s, c) => s + c.progreso_pct, 0) / cursosRelacionados.length)
+    : 0;
+
+  let insignia = 'Inicial';
+  if (avanceGeneralPct >= 80 && cursosCompletados.length > 0) insignia = 'Experto Acreditado';
+  else if (avanceGeneralPct >= 50) insignia = 'Avanzado';
+  else if (avanceGeneralPct >= 20 || cursosEnCurso.length > 0) insignia = 'En Desarrollo';
+
+  // Resumen de dominio por cada competencia y habilidad del puesto
+  const competenciasResumen = [];
+  for (const nombre of perfil.competencias_puesto) {
+    const n = normTag(nombre);
+    const rel = cursosRelacionados.filter((c) => c.competencias.some((x) => normTag(x) === n));
+    const acr = rel.filter((c) => c.acreditado).length;
+    const dom = rel.length ? Math.round(rel.reduce((s, c) => s + c.progreso_pct, 0) / rel.length) : 0;
+    competenciasResumen.push({ nombre, tipo: 'competencia', cursos_relacionados: rel.length, cursos_acreditados: acr, dominio_pct: dom });
+  }
+  for (const nombre of perfil.habilidades_puesto) {
+    const n = normTag(nombre);
+    const rel = cursosRelacionados.filter((c) => c.habilidades.some((x) => normTag(x) === n));
+    const acr = rel.filter((c) => c.acreditado).length;
+    const dom = rel.length ? Math.round(rel.reduce((s, c) => s + c.progreso_pct, 0) / rel.length) : 0;
+    competenciasResumen.push({ nombre, tipo: 'habilidad', cursos_relacionados: rel.length, cursos_acreditados: acr, dominio_pct: dom });
+  }
+
+  // Histórico de certificados con diagnóstica vs final y vigencia (1 año)
+  const ahora = Date.now();
+  const certificados = certsRes.rows.map((ce) => {
+    const info = intentosByCurso.get(ce.curso_id);
+    const diagPct = info?.diag ? pct(info.diag.puntaje, info.diag.total) : null;
+    const finalPct = pct(ce.puntaje, ce.total);
+    const gananciaPct = (diagPct !== null && finalPct !== null) ? Math.round((finalPct - diagPct) * 10) / 10 : null;
+    const emitida = new Date(ce.created_at);
+    const vence = new Date(emitida);
+    vence.setFullYear(vence.getFullYear() + 1);
+    const diasRestantes = Math.ceil((vence.getTime() - ahora) / 86400000);
+    const vigencia_estado = diasRestantes <= 0 ? 'vencido' : (diasRestantes <= 60 ? 'proximo_vencer' : 'vigente');
+    return {
+      codigo: ce.codigo,
+      curso_id: ce.curso_id,
+      curso: ce.curso,
+      duracion: ce.duracion || '',
+      competencias: Array.isArray(ce.competencias) ? ce.competencias : [],
+      habilidades: Array.isArray(ce.habilidades) ? ce.habilidades : [],
+      diag_puntaje: info?.diag?.puntaje ?? null,
+      diag_total: info?.diag?.total ?? null,
+      diag_pct: diagPct,
+      final_puntaje: ce.puntaje,
+      final_total: ce.total,
+      final_pct: finalPct,
+      ganancia_pct: gananciaPct,
+      created_at: ce.created_at,
+      vence_at: vence.toISOString(),
+      vigencia_estado,
+    };
+  });
+
+  res.json({
+    perfil: { ...perfil, insignia },
+    resumen: {
+      avance_general_pct: avanceGeneralPct,
+      en_progreso: cursosEnCurso.length,
+      disponibles: cursosDisponibles.length,
+      completados: cursosCompletados.length,
+      total_relacionados: cursosRelacionados.length,
+    },
+    competencias_resumen: competenciasResumen,
+    cursos_en_curso: cursosEnCurso,
+    cursos_relacionados: cursosRelacionados,
+    certificados,
+  });
 });
 
 // Resultados de evaluaciones de toda la empresa (para el menú Evaluaciones)
@@ -291,7 +549,7 @@ router.post('/:id/audio/:leccionId', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Audio de una lección
+// Audio de una lección (registra reproducción real del usuario para el 60% de avance)
 router.get('/:id/audio/:leccionId', async (req, res) => {
   const { rows: [l] } = await pool.query(
     `SELECT l.audio_path FROM lecciones l JOIN cursos c ON c.id = l.curso_id
@@ -299,6 +557,11 @@ router.get('/:id/audio/:leccionId', async (req, res) => {
     [req.params.leccionId, req.params.id, req.user.empresa_id]
   );
   if (!l?.audio_path) return res.status(404).json({ error: 'Sin audio' });
+  await pool.query(
+    `INSERT INTO progreso_audio (curso_id, leccion_id, usuario_id)
+     VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+    [req.params.id, req.params.leccionId, req.user.sub]
+  ).catch(() => {});
   res.sendFile(l.audio_path);
 });
 

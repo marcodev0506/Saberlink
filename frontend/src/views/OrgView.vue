@@ -1,23 +1,26 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { get, post, put, del } from '../api.js';
 import AppLayout from '../components/AppLayout.vue';
 import OrgCard from '../components/OrgCard.vue';
 import TagSelect from '../components/TagSelect.vue';
 
 const arbol = ref([]);
+const usuariosEmpresa = ref([]);
 const error = ref('');
 const modal = ref(null);        // { mode: 'card'|'perfil'|'confirm', padre?, node? }
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 const esRrhh = user.rol === 'rrhh';
 const colapsados = ref(new Set());
 
-const f = ref({ cargo: '', nombre_apellido: '', ci: '', correo: '' });
+const f = ref({ cargo: '', usuario_id: null, nombre_apellido: '', ci: '', correo: '' });
 const p = ref({ descripcion: '', competencias: [], habilidades: [] });
 const tipoDraft = ref('unidad');
 const chatTxt = ref('');
 const chatLoading = ref(false);
 const chatMsg = ref('');
+const mostrarSug = ref(false);
+
 async function enviarChat() {
   if (!chatTxt.value.trim()) return;
   chatLoading.value = true; chatMsg.value = '';
@@ -29,12 +32,55 @@ async function enviarChat() {
   chatLoading.value = false;
 }
 
-function fmtCi(e) { f.value.ci = 'V-' + e.target.value.replace(/[^0-9]/g, ''); }
+function seleccionarUsuario(u) {
+  f.value.usuario_id = u.id;
+  if (u.ci) f.value.ci = u.ci;
+  f.value.nombre_apellido = u.nombre;
+  f.value.correo = u.email;
+  mostrarSug.value = false;
+}
+
+function fmtCi(e) {
+  const digits = e.target.value.replace(/[^0-9]/g, '');
+  f.value.ci = digits ? 'V-' + digits : '';
+  f.value.usuario_id = null;
+  mostrarSug.value = true;
+  if (digits.length >= 5) {
+    const exacto = usuariosEmpresa.value.find(
+      (u) => u.ci && u.ci.replace(/[^0-9]/g, '') === digits
+    );
+    if (exacto) seleccionarUsuario(exacto);
+  }
+}
+
+function onCorreoInput() {
+  const q = f.value.correo.trim().toLowerCase();
+  if (!q) { f.value.usuario_id = null; return; }
+  const exacto = usuariosEmpresa.value.find((u) => u.email.toLowerCase() === q);
+  if (exacto) seleccionarUsuario(exacto);
+}
+
+const sugerencias = computed(() => {
+  const qCi = f.value.ci.replace(/[^0-9]/g, '');
+  const qNom = f.value.nombre_apellido.trim().toLowerCase();
+  if (!qCi && qNom.length < 2) return [];
+  return usuariosEmpresa.value.filter((u) => {
+    const matchCi = qCi && u.ci && u.ci.replace(/[^0-9]/g, '').includes(qCi);
+    const matchNom = qNom.length >= 2 && (
+      u.nombre.toLowerCase().includes(qNom) || u.email.toLowerCase().includes(qNom)
+    );
+    return matchCi || matchNom;
+  }).slice(0, 6);
+});
 
 async function cargar() {
   try {
-    const data = await get('/api/unidades');
+    const [data, uData] = await Promise.all([
+      get('/api/unidades'),
+      esRrhh ? get('/api/usuarios').catch(() => ({ usuarios: [] })) : Promise.resolve({ usuarios: [] }),
+    ]);
     arbol.value = data.unidades;
+    usuariosEmpresa.value = uData.usuarios || [];
   } catch (e) { error.value = e.message; }
 }
 
@@ -46,9 +92,10 @@ function toggle(id) {
 
 function abrirCard(padre = null, node = null) {
   modal.value = { mode: 'card', padre, node };
+  mostrarSug.value = false;
   f.value = node
-    ? { cargo: node.cargo || node.nombre, nombre_apellido: node.nombre_apellido, ci: node.ci, correo: node.correo }
-    : { cargo: '', nombre_apellido: '', ci: '', correo: '' };
+    ? { cargo: node.cargo || node.nombre, usuario_id: node.usuario_id || null, nombre_apellido: node.nombre_apellido, ci: node.ci, correo: node.correo }
+    : { cargo: '', usuario_id: null, nombre_apellido: '', ci: '', correo: '' };
   tipoDraft.value = node?.tipo || 'unidad';
 }
 
@@ -69,6 +116,7 @@ async function guardar() {
         nombre: f.value.cargo.trim(),
         cargo: f.value.cargo.trim(),
         tipo: tipoDraft.value,
+        usuario_id: f.value.usuario_id || null,
         nombre_apellido: f.value.nombre_apellido,
         ci: f.value.ci,
         correo: f.value.correo,
@@ -151,9 +199,19 @@ onMounted(cargar);
           <h2>{{ modal.node ? 'Editar puesto' : modal.padre ? `Sub-unidad de "${modal.padre.cargo || modal.padre.nombre}"` : 'Nueva unidad' }}</h2>
           <label>Tipo <input v-model="tipoDraft" placeholder="gerencia, unidad, analista…" /></label>
           <label>Cargo / Nombre <input v-model="f.cargo" placeholder="Gerente de Operaciones" /></label>
-          <label>Nombre y Apellido <input v-model="f.nombre_apellido" /></label>
-          <label>CI <input :value="f.ci" @input="fmtCi" placeholder="V-12345678" inputmode="numeric" /></label>
-          <label>Correo <input v-model="f.correo" type="email" /></label>
+          <div class="ac-wrap">
+            <label>CI (Cédula) <span class="hint">— escribe para autocompletar</span>
+              <input :value="f.ci" @input="fmtCi" @focus="mostrarSug = true" placeholder="V-12345678" inputmode="numeric" />
+            </label>
+            <ul v-if="mostrarSug && sugerencias.length" class="ac-list">
+              <li v-for="u in sugerencias" :key="u.id" @mousedown.prevent="seleccionarUsuario(u)">
+                <b>{{ u.ci || 'Sin CI' }}</b> · {{ u.nombre }} <small>{{ u.email }}</small>
+              </li>
+            </ul>
+          </div>
+          <label>Nombre y Apellido <input v-model="f.nombre_apellido" @focus="mostrarSug = true" /></label>
+          <label>Correo <input v-model="f.correo" type="email" @input="onCorreoInput" /></label>
+          <p v-if="f.usuario_id" class="linked-ok">✓ Vinculado a usuario registrado en la empresa</p>
         </template>
         <template v-else-if="modal.mode === 'confirm'">
           <h2>Eliminar "{{ modal.node.cargo || modal.node.nombre }}"</h2>
@@ -208,4 +266,16 @@ h1 { color: var(--navy); margin: 0; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }
 .hint { font-weight: 400; color: #9aa3b5; }
 .tagfield label { font-size: .8rem; font-weight: 600; color: #374151; display: block; margin-bottom: .35rem; }
+.ac-wrap { position: relative; }
+.ac-list {
+  position: absolute; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: .3rem;
+  list-style: none; background: #fff; border: 1.5px solid #cbd5e1; border-radius: 10px;
+  box-shadow: 0 8px 22px rgba(15,30,80,.14); z-index: 70; max-height: 170px; overflow-y: auto;
+}
+.ac-list li {
+  padding: .42rem .55rem; border-radius: 7px; font-size: .78rem; color: #1f2937; cursor: pointer;
+}
+.ac-list li:hover { background: #f1f5f9; }
+.ac-list small { display: block; color: #64748b; font-size: .7rem; }
+.linked-ok { margin: -.4rem 0 0; font-size: .74rem; font-weight: 700; color: #15803d; }
 </style>

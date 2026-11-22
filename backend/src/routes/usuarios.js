@@ -16,24 +16,34 @@ function requireRrhh(req, res, next) {
 
 router.get('/', requireRrhh, async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, nombre, email, rol, activo, created_at FROM usuarios
-     WHERE empresa_id = $1 AND activo = true ORDER BY created_at`, [req.user.empresa_id]
+    `SELECT u.id, u.nombre, u.email, u.ci, u.rol, u.activo, u.empresa_id, e.nombre AS empresa, e.rif, u.created_at
+     FROM usuarios u JOIN empresas e ON e.id = u.empresa_id
+     WHERE u.empresa_id = $1 AND u.activo = true ORDER BY u.created_at`, [req.user.empresa_id]
   );
   res.json({ usuarios: rows });
 });
 
+router.get('/empresa', requireRrhh, async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT id, rif, nombre FROM empresas WHERE id = $1',
+    [req.user.empresa_id]
+  );
+  res.json({ empresas: rows });
+});
+
 router.post('/', requireRrhh, async (req, res) => {
-  const { nombre, email, password, rol } = req.body ?? {};
+  const { nombre, email, ci, password, rol, empresa_id } = req.body ?? {};
   if (!['gestor_curso', 'trabajador', 'rrhh'].includes(rol)) return res.status(400).json({ error: 'Rol inválido' });
   if (!nombre || !email || !password) return res.status(400).json({ error: 'Faltan campos' });
   if (password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+  const targetEmpresa = empresa_id && empresa_id === req.user.empresa_id ? empresa_id : req.user.empresa_id;
 
   try {
     const hash = await bcrypt.hash(password, 10);
     const { rows: [user] } = await pool.query(
-      `INSERT INTO usuarios (empresa_id, email, password_hash, nombre, rol)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id, nombre, email, rol`,
-      [req.user.empresa_id, email, hash, nombre, rol]
+      `INSERT INTO usuarios (empresa_id, email, ci, password_hash, nombre, rol)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, nombre, email, ci, rol, empresa_id`,
+      [targetEmpresa, email.trim(), String(ci ?? '').trim(), hash, nombre.trim(), rol]
     );
     res.status(201).json({ usuario: user });
   } catch (err) {
@@ -62,19 +72,24 @@ router.post('/importar', requireRrhh, async (req, res) => {
   for (const [i, r] of rows.entries()) {
     const nombre = String(r.nombre ?? r.Nombre ?? r.NOMBRE ?? '').trim();
     const email = String(r.correo ?? r.Correo ?? r.CORREO ?? r.email ?? r.Email ?? '').trim();
+    const ci = String(r.ci ?? r.CI ?? r.cedula ?? r.Cedula ?? r['Cédula'] ?? r.CEDULA ?? '').trim();
     const rol = String(r.rol ?? r.Rol ?? r.ROL ?? 'trabajador').trim().toLowerCase();
     if (!nombre || !email) { errores.push(`Fila ${i + 2}: falta nombre o correo`); continue; }
     if (!['rrhh', 'gestor_curso', 'trabajador'].includes(rol)) { errores.push(`Fila ${i + 2}: rol inválido "${rol}"`); continue; }
     try {
       await pool.query(
-        `INSERT INTO usuarios (empresa_id, email, password_hash, nombre, rol, debe_cambiar_password)
-         VALUES ($1, $2, $3, $4, $5, true)`,
-        [req.user.empresa_id, email, hash, nombre, rol]
+        `INSERT INTO usuarios (empresa_id, email, ci, password_hash, nombre, rol, debe_cambiar_password)
+         VALUES ($1, $2, $3, $4, $5, $6, true)`,
+        [req.user.empresa_id, email, ci, hash, nombre, rol]
       );
       creados++;
     } catch (err) {
       if (err.code === '23505') {
-        const r = await pool.query('UPDATE usuarios SET activo = true WHERE email = $1 AND activo = false', [email]);
+        const r = await pool.query(
+          `UPDATE usuarios SET activo = true, ci = CASE WHEN $2 <> '' THEN $2 ELSE ci END
+           WHERE email = $1 AND (activo = false OR ($2 <> '' AND ci = ''))`,
+          [email, ci]
+        );
         r.rowCount ? rehabilitados++ : omitidos++;
       }
       else errores.push(`Fila ${i + 2}: ${err.message}`);

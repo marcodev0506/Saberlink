@@ -5,12 +5,14 @@ import { get, post, put, del } from '../api.js';
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import AppLayout from '../components/AppLayout.vue';
 import TagSelect from '../components/TagSelect.vue';
+import WorkerCoursesPortal from '../components/WorkerCoursesPortal.vue';
 
 const cursos = ref([]);
 const gestoresDeCurso = ref([]);
 const error = ref('');
 const modal = ref(false);
 const user = JSON.parse(localStorage.getItem('user') || '{}');
+const esTrabajador = user.rol === 'trabajador';
 const puedeCrear = user.rol === 'rrhh' || user.rol === 'gestor_curso';
 
 const f = ref({ titulo: '', objetivo: '', duracion: '', facilitador_id: '' });
@@ -115,11 +117,15 @@ async function confirmar(id) {
   await cargar();
 }
 
-onMounted(cargar);
+onMounted(() => {
+  if (!esTrabajador) cargar();
+});
 </script>
 
 <template>
   <AppLayout>
+    <WorkerCoursesPortal v-if="esTrabajador" />
+    <template v-else>
     <header class="top">
       <div>
         <h1>Cursos</h1>
@@ -193,6 +199,7 @@ onMounted(cargar);
         </div>
       </div>
     </div>
+    </template>
   </AppLayout>
 </template>
 

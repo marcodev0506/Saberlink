@@ -13,7 +13,7 @@ function requireRrhh(req, res, next) {
 // Devuelve el árbol completo de la empresa
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, parent_id, nombre, tipo, descripcion, competencias, habilidades,
+    `SELECT id, parent_id, usuario_id, nombre, tipo, descripcion, competencias, habilidades,
             cargo, nombre_apellido, ci, correo, orden, metadata FROM unidades
      WHERE empresa_id = $1 ORDER BY orden, nombre`, [req.user.empresa_id]
   );
@@ -27,8 +27,27 @@ router.get('/', async (req, res) => {
   res.json({ unidades: build('root') });
 });
 
+async function resolveUsuarioId(empresaId, usuarioId, correo, ci) {
+  if (usuarioId) return usuarioId;
+  if (correo?.trim()) {
+    const { rows: [u] } = await pool.query(
+      'SELECT id FROM usuarios WHERE empresa_id = $1 AND LOWER(TRIM(email)) = LOWER(TRIM($2)) LIMIT 1',
+      [empresaId, correo]
+    );
+    if (u) return u.id;
+  }
+  if (ci?.trim()) {
+    const { rows: [u] } = await pool.query(
+      'SELECT id FROM usuarios WHERE empresa_id = $1 AND UPPER(TRIM(ci)) = UPPER(TRIM($2)) LIMIT 1',
+      [empresaId, ci]
+    );
+    if (u) return u.id;
+  }
+  return null;
+}
+
 router.post('/', requireRrhh, async (req, res) => {
-  const { nombre, tipo, parent_id, descripcion, competencias, habilidades,
+  const { nombre, tipo, parent_id, usuario_id, descripcion, competencias, habilidades,
           cargo, nombre_apellido, ci, correo, orden, metadata } = req.body ?? {};
   if (!nombre?.trim()) return res.status(400).json({ error: 'Falta el nombre' });
   if (parent_id) {
@@ -37,16 +56,20 @@ router.post('/', requireRrhh, async (req, res) => {
     );
     if (!parent) return res.status(404).json({ error: 'Unidad padre no encontrada' });
   }
+  const resolvedUid = await resolveUsuarioId(req.user.empresa_id, usuario_id, correo, ci);
   const { rows: [u] } = await pool.query(
-    `INSERT INTO unidades (empresa_id, parent_id, nombre, tipo, descripcion, competencias, habilidades,
+    `INSERT INTO unidades (empresa_id, parent_id, usuario_id, nombre, tipo, descripcion, competencias, habilidades,
                            cargo, nombre_apellido, ci, correo, orden, metadata)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-     RETURNING id, parent_id, nombre, tipo, descripcion, competencias, habilidades,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+     RETURNING id, parent_id, usuario_id, nombre, tipo, descripcion, competencias, habilidades,
                cargo, nombre_apellido, ci, correo, orden, metadata`,
-    [req.user.empresa_id, parent_id || null, nombre.trim(), tipo?.trim() || 'unidad',
+    [req.user.empresa_id, parent_id || null, resolvedUid, nombre.trim(), tipo?.trim() || 'unidad',
      descripcion ?? '', JSON.stringify(competencias ?? []), JSON.stringify(habilidades ?? []),
      cargo ?? '', nombre_apellido ?? '', ci ?? '', correo ?? '', orden ?? 0, JSON.stringify(metadata ?? {})]
   );
+  if (resolvedUid && ci?.trim()) {
+    await pool.query("UPDATE usuarios SET ci = $1 WHERE id = $2 AND (ci IS NULL OR ci = '')", [ci.trim(), resolvedUid]);
+  }
   res.status(201).json({ unidad: u });
 });
 
@@ -173,8 +196,11 @@ Descripción: "${texto}"`;
 });
 
 router.put('/:id', requireRrhh, async (req, res) => {
-  const { nombre, tipo, parent_id, descripcion, competencias, habilidades,
+  const { nombre, tipo, parent_id, usuario_id, descripcion, competencias, habilidades,
           cargo, nombre_apellido, ci, correo, orden, metadata } = req.body ?? {};
+  const resolvedUid = (usuario_id !== undefined || correo !== undefined || ci !== undefined)
+    ? await resolveUsuarioId(req.user.empresa_id, usuario_id, correo, ci)
+    : null;
   const { rows: [u] } = await pool.query(
     `UPDATE unidades SET
        nombre      = COALESCE($3, nombre),
@@ -188,17 +214,21 @@ router.put('/:id', requireRrhh, async (req, res) => {
        correo      = COALESCE($11, correo),
        orden       = COALESCE($12, orden),
        metadata    = COALESCE($13, metadata),
-       parent_id   = COALESCE($14, parent_id)
+       parent_id   = COALESCE($14, parent_id),
+       usuario_id  = COALESCE($15, usuario_id)
      WHERE id = $1 AND empresa_id = $2
-     RETURNING id, parent_id, nombre, tipo, descripcion, competencias, habilidades,
+     RETURNING id, parent_id, usuario_id, nombre, tipo, descripcion, competencias, habilidades,
                cargo, nombre_apellido, ci, correo, orden, metadata`,
     [req.params.id, req.user.empresa_id, nombre?.trim() ?? null, tipo?.trim() ?? null,
      descripcion ?? null, competencias != null ? JSON.stringify(competencias) : null,
      habilidades != null ? JSON.stringify(habilidades) : null,
      cargo ?? null, nombre_apellido ?? null, ci ?? null, correo ?? null,
-     orden ?? null, metadata != null ? JSON.stringify(metadata) : null, parent_id ?? null]
+     orden ?? null, metadata != null ? JSON.stringify(metadata) : null, parent_id ?? null, resolvedUid]
   );
   if (!u) return res.status(404).json({ error: 'Unidad no encontrada' });
+  if (u.usuario_id && ci?.trim()) {
+    await pool.query("UPDATE usuarios SET ci = $1 WHERE id = $2 AND (ci IS NULL OR ci = '')", [ci.trim(), u.usuario_id]);
+  }
   res.json({ unidad: u });
 });
 

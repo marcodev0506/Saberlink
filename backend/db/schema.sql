@@ -117,3 +117,34 @@ CREATE TABLE IF NOT EXISTS certificados (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (curso_id, usuario_id)
 );
+
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ci TEXT NOT NULL DEFAULT '';
+ALTER TABLE unidades ADD COLUMN IF NOT EXISTS usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS unidades_usuario_idx ON unidades(usuario_id);
+
+-- Enlaza automáticamente puestos existentes con usuarios de la misma empresa por correo
+UPDATE unidades un
+SET usuario_id = u.id
+FROM usuarios u
+WHERE un.usuario_id IS NULL
+  AND un.empresa_id = u.empresa_id
+  AND un.correo <> ''
+  AND LOWER(TRIM(un.correo)) = LOWER(TRIM(u.email));
+
+-- Sincroniza cédula desde el puesto si el usuario aún no la tiene cargada
+UPDATE usuarios u
+SET ci = un.ci
+FROM unidades un
+WHERE un.usuario_id = u.id
+  AND (u.ci IS NULL OR u.ci = '')
+  AND un.ci <> '';
+
+CREATE TABLE IF NOT EXISTS progreso_audio (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  curso_id   UUID NOT NULL REFERENCES cursos(id) ON DELETE CASCADE,
+  leccion_id UUID REFERENCES lecciones(id) ON DELETE CASCADE,
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS progreso_audio_uniq ON progreso_audio(curso_id, usuario_id, COALESCE(leccion_id, '00000000-0000-0000-0000-000000000000'::uuid));
+CREATE INDEX IF NOT EXISTS progreso_audio_user_idx ON progreso_audio(usuario_id, curso_id);
