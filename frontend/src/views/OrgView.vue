@@ -195,7 +195,8 @@ h1 { color: var(--navy); margin: 0; }
 .chat textarea { flex: 1; border: 1.5px solid #e2e6f0; border-radius: 8px; padding: .55rem; font-family: inherit; resize: vertical; }
 .chatmsg { font-size: .8rem; color: var(--navy); margin: 0; align-self: center; }
 .board {
-  margin: -1.5rem -1rem -3rem; padding: 1.5rem 2rem 3rem; min-height: calc(100vh - 60px);
+  width: 100vw; margin-left: calc(50% - 50vw); margin-top: -1.5rem; margin-bottom: -3rem;
+  padding: 1.5rem 3rem 3rem; min-height: calc(100vh - 60px);
   background: url('/pizarra.jpg') repeat; background-size: 560px;
 }
 .canvas { padding: 1rem 0; }
