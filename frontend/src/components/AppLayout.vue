@@ -78,11 +78,11 @@ function logout() {
 </template>
 
 <style scoped>
-.shell { min-height: 100vh; background: var(--cream); font-family: 'Inter', system-ui, sans-serif; }
+.shell { min-height: 100vh; background: #fff; font-family: 'Inter', system-ui, sans-serif; }
 .topbar {
   display: flex; align-items: center; gap: 2rem;
   padding: 0 2rem; height: 60px;
-  background: #fff; border-bottom: 1px solid #e6eaf3;
+  background: #faeed3; border-bottom: 1px solid #e6eaf3;
   position: sticky; top: 0; z-index: 10;
 }
 .brand { font-size: 1.25rem; font-weight: 800; color: var(--navy); text-decoration: none; }

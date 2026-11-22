@@ -9,7 +9,7 @@
 }
 
 body {
-  background: var(--cream);
+  background: #fff;
   color: var(--ink);
   font-family: system-ui, 'Segoe UI', sans-serif;
 }
