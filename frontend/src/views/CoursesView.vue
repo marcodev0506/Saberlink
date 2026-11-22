@@ -100,7 +100,7 @@ onMounted(cargar);
         <p class="sub">El gestor de curso sube el PDF; la IA genera el guion, las evaluaciones y el audio con ElevenLabs.</p>
       </div>
       <div class="actions">
-        <a class="ghost link" href="/plantilla_unidad.docx" download>📄 Plantilla</a>
+        <a v-if="puedeCrear" class="ghost link" href="/plantilla_unidad.docx" download>📄 Plantilla</a>
         <button v-if="puedeCrear" class="primary" @click="modal = true">+ Curso</button>
       </div>
     </header>
