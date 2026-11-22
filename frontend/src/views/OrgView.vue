@@ -194,7 +194,7 @@ onMounted(cargar);
     </div>
 
     <div v-if="modal" class="overlay" @click.self="modal = null">
-      <div :class="['dialog', { 'dialog-sm': modal.mode === 'confirm' }]">
+      <div :class="['dialog', { 'dialog-sm': modal.mode === 'confirm', 'dialog-lg': modal.mode === 'perfil' }]">
         <template v-if="modal.mode === 'card'">
           <h2>{{ modal.node ? 'Editar puesto' : modal.padre ? `Sub-unidad de "${modal.padre.cargo || modal.padre.nombre}"` : 'Nueva unidad' }}</h2>
           <div class="form-row">
@@ -228,11 +228,13 @@ onMounted(cargar);
         </template>
         <template v-else>
           <h2>Perfil de "{{ modal.node.cargo || modal.node.nombre }}"</h2>
-          <label>Descripción del puesto <textarea v-model="p.descripcion" rows="3" placeholder="Funciones y alcance" /></label>
-          <div class="tagfield" v-for="campo in ['habilidades','competencias']" :key="campo">
-            <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }}
-              <span class="hint">(del banco central — enlazan a cursos)</span></label>
-            <TagSelect :tipo="campo === 'competencias' ? 'competencia' : 'habilidad'" v-model="p[campo]" />
+          <label>Descripción del puesto <textarea v-model="p.descripcion" rows="3" placeholder="Funciones y alcance del puesto" /></label>
+          <div class="form-row">
+            <div class="tagfield" v-for="campo in ['habilidades','competencias']" :key="campo">
+              <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }}
+                <span class="hint">(Enter para agregar)</span></label>
+              <TagSelect :tipo="campo === 'competencias' ? 'competencia' : 'habilidad'" v-model="p[campo]" />
+            </div>
           </div>
         </template>
         <div v-if="modal.mode === 'card' || modal.mode === 'perfil'" class="dialog-actions">
@@ -265,14 +267,15 @@ h1 { color: var(--navy); margin: 0; }
 
 .overlay { position: fixed; inset: 0; background: rgba(10,20,50,.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
 .dialog { background: #fff; border-radius: 18px; padding: 2rem 2.25rem; width: min(640px, 94vw); display: flex; flex-direction: column; gap: 1.15rem; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(10,20,50,.22); box-sizing: border-box; }
+.dialog-lg { width: min(760px, 94vw); }
 .dialog-sm { width: min(420px, 92vw); }
 .dialog h2 { margin: 0 0 .2rem; font-size: 1.25rem; color: var(--navy); }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
 .dialog label { display: flex; flex-direction: column; gap: .4rem; font-size: .84rem; font-weight: 600; color: #374151; }
 .lbl-line { display: flex; align-items: baseline; gap: .35rem; flex-wrap: wrap; }
 .dialog input, .dialog select, .dialog textarea { padding: .68rem .85rem; border: 1.5px solid #d8dee9; border-radius: 10px; font-family: inherit; font-size: .9rem; }
 .dialog input:focus, .dialog select:focus, .dialog textarea:focus { outline: none; border-color: var(--navy); }
-.dialog-actions { display: flex; justify-content: flex-end; gap: .65rem; margin-top: .35rem; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: .65rem; margin-top: .5rem; padding-top: .9rem; border-top: 1px solid #eef2f6; position: sticky; bottom: 0; background: #fff; }
 @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
 .hint { font-weight: 400; color: #9aa3b5; }
 .tagfield label { font-size: .8rem; font-weight: 600; color: #374151; display: block; margin-bottom: .35rem; }

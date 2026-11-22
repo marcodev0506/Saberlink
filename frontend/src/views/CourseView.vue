@@ -110,7 +110,18 @@ onMounted(cargar);
 
 <style scoped>
 .top { display: flex; justify-content: space-between; align-items: flex-start; }
-.back { color: var(--navy); font-size: .85rem; font-weight: 600; text-decoration: none; }
+.back {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .52rem 1.15rem; border-radius: 999px; margin-bottom: .6rem;
+  background: #f3f6fb; border: 1.5px solid #dce3ee;
+  color: var(--navy); font-size: .92rem; font-weight: 700; text-decoration: none;
+  box-shadow: 0 2px 6px rgba(5,40,75,.06);
+  transition: all .16s ease;
+}
+.back:hover {
+  background: var(--navy); color: #fff; border-color: var(--navy);
+  transform: translateY(-1px); box-shadow: 0 6px 14px rgba(5,40,75,.16);
+}
 h1 { color: var(--navy); margin: .3rem 0 0; }
 .titulorow { display: flex; align-items: center; gap: .8rem; }
 .portada { width: 72px; height: 72px; border-radius: 50%; border: 3px solid var(--navy); flex-shrink: 0;

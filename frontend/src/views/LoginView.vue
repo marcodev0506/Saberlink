@@ -28,7 +28,7 @@ async function submit() {
 
 <template>
   <div class="auth-layout">
-    <aside class="auth-brand" :style="{ backgroundImage: `url(${collage})` }">
+    <aside class="auth-brand" :style="{ backgroundImage: `url(${collage})`, cursor: 'pointer' }" title="Ir a la página principal" @click="router.push('/')">
       <div class="logo">Saber<span>link</span></div>
       <h2>Formación y acreditación para tu equipo</h2>
       <p class="lead">Gestiona cursos, mide el progreso y emite certificados con QR en una sola plataforma.</p>

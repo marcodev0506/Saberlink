@@ -207,7 +207,17 @@ function logout() {
 .n-body small { display: block; font-size: .72rem; color: #64748b; margin-top: .15rem; }
 .notif-empty { margin: 0; padding: 1.25rem; text-align: center; font-size: .8rem; color: #94a3b8; }
 .crumb { max-width: 1240px; margin: 1.25rem auto 0; padding: 0 1rem; }
-.back { color: var(--navy); font-size: .85rem; font-weight: 600; text-decoration: none; }
-.back:hover { text-decoration: underline; }
+.back {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .52rem 1.15rem; border-radius: 999px;
+  background: #f3f6fb; border: 1.5px solid #dce3ee;
+  color: var(--navy); font-size: .92rem; font-weight: 700; text-decoration: none;
+  box-shadow: 0 2px 6px rgba(5,40,75,.06);
+  transition: all .16s ease;
+}
+.back:hover {
+  background: var(--navy); color: #fff; border-color: var(--navy);
+  transform: translateY(-1px); box-shadow: 0 6px 14px rgba(5,40,75,.16);
+}
 .content { max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
 </style>

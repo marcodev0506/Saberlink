@@ -82,7 +82,18 @@ onMounted(cargar);
 </template>
 
 <style scoped>
-.back { color: var(--navy); font-size: .85rem; font-weight: 600; text-decoration: none; }
+.back {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .52rem 1.15rem; border-radius: 999px;
+  background: #f3f6fb; border: 1.5px solid #dce3ee;
+  color: var(--navy); font-size: .92rem; font-weight: 700; text-decoration: none;
+  box-shadow: 0 2px 6px rgba(5,40,75,.06);
+  transition: all .16s ease;
+}
+.back:hover {
+  background: var(--navy); color: #fff; border-color: var(--navy);
+  transform: translateY(-1px); box-shadow: 0 6px 14px rgba(5,40,75,.16);
+}
 .top { margin-top: .8rem; }
 h1 { color: var(--navy); margin: .3rem 0 0; }
 .sub { color: #6b7280; font-size: .9rem; }

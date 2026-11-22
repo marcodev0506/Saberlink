@@ -37,7 +37,7 @@ async function submit() {
 
 <template>
   <div class="auth-layout">
-    <aside class="auth-brand" :style="{ backgroundImage: `url(${collage})` }">
+    <aside class="auth-brand" :style="{ backgroundImage: `url(${collage})`, cursor: 'pointer' }" title="Ir a la página principal" @click="router.push('/')">
       <div class="logo">Saber<span>link</span></div>
       <h2>Lleva la acreditación de tu empresa al siguiente nivel</h2>
       <p class="lead">Registra tu empresa con su RIF y crea tu espacio en minutos.</p>
