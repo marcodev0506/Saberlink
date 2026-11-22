@@ -51,11 +51,53 @@ router.post('/', requireRrhh, async (req, res) => {
 });
 
 // Crea la estructura desde una descripción en lenguaje natural.
-// Primero intenta un parser determinístico para patrones con cantidades
-// ("X con N líderes y cada líder M analistas"); si no aplica, usa Ollama.
+// Ollama interpreta el texto libre; si falla, un parser determinístico
+// cubre los patrones habituales ("con N hijos", "y cada", "dentro de X").
 router.post('/chat', requireRrhh, async (req, res) => {
   const { texto } = req.body ?? {};
   if (!texto?.trim()) return res.status(400).json({ error: 'Falta el texto' });
+
+  // 1) Ollama primero: lenguaje natural libre
+  let tree = null;
+  try {
+    const url = process.env.OLLAMA_URL || 'http://host.docker.internal:11434';
+    const model = process.env.OLLAMA_MODEL || 'llama3.2:1b';
+    const prompt = `Convierte una descripción de estructura organizacional (en español) a un árbol JSON.
+Reglas:
+- Devuelve SOLO JSON válido, sin texto extra ni markdown: {"nombre":"...","tipo":"gerencia","hijos":[...]}
+- "tipo" es "gerencia" para gerencias/presidencias/direcciones y "unidad" para el resto.
+- Si menciona cantidades ("3 analistas"), genera ese número exacto de hijos numerados ("Analista 1", "Analista 2", "Analista 3").
+- Los nombres deben ser los cargos/departamentos que describe el usuario, con su nombre real (ej "Gerencia de Recursos Humanos"), no genéricos.
+
+Ejemplo 1:
+Descripción: "una gerencia de recursos humanos con 3 líderes y cada líder 2 analistas"
+{"nombre":"Gerencia de Recursos Humanos","tipo":"gerencia","hijos":[
+  {"nombre":"Líder 1","tipo":"unidad","hijos":[{"nombre":"Analista 1","tipo":"unidad","hijos":[]},{"nombre":"Analista 2","tipo":"unidad","hijos":[]}]},
+  {"nombre":"Líder 2","tipo":"unidad","hijos":[{"nombre":"Analista 1","tipo":"unidad","hijos":[]},{"nombre":"Analista 2","tipo":"unidad","hijos":[]}]},
+  {"nombre":"Líder 3","tipo":"unidad","hijos":[{"nombre":"Analista 1","tipo":"unidad","hijos":[]},{"nombre":"Analista 2","tipo":"unidad","hijos":[]}]}
+]}
+
+Ejemplo 2:
+Descripción: "una presidencia con una gerencia de operaciones y una gerencia de finanzas"
+{"nombre":"Presidencia","tipo":"gerencia","hijos":[
+  {"nombre":"Gerencia de Operaciones","tipo":"gerencia","hijos":[]},
+  {"nombre":"Gerencia de Finanzas","tipo":"gerencia","hijos":[]}
+]}
+
+Descripción: "${texto}"`;
+    const r = await fetch(`${url}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt, stream: false, format: 'json' }),
+    });
+    if (r.ok) {
+      const { response } = await r.json();
+      try {
+        const t = JSON.parse(response);
+        if (t?.nombre) tree = t;
+      } catch { /* cae al parser */ }
+    }
+  } catch { /* Ollama inalcanzable: cae al parser */ }
 
   const cap = (s) => s.trim().replace(/\b\w/g, (c) => c.toUpperCase());
   const sing = (s) => s.trim().replace(/^(?:un|una)\s+/i, '').replace(/(ces|es|e|s)$/i, '');
@@ -84,9 +126,8 @@ router.post('/chat', requireRrhh, async (req, res) => {
   const txt = texto.trim().replace(/^(?:quiero\s+crear\s+|crea(?:r)?\s+)/i, '');
   const partes = txt.split(/\s*(?:,|\.)?\s*y?\s*dentro\s+de\s+/i);
   const mMain = partes[0].match(/^(.+?)\s+con\s+(.+)$/i);
-  let tree = null;
 
-  if (mMain) {
+  if (!tree && mMain) {
     const raizNombre = mMain[1];
     let hijosTxt = mMain[2];
     // "y cada X N hijos" se aplica a todos los hijos de la lista
@@ -117,26 +158,7 @@ router.post('/chat', requireRrhh, async (req, res) => {
       if (target) idx[target].hijos.push(...hijosCl.flatMap((it) => mk(it.nombre, it.cantidad)));
     }
   }
-  if (!tree) {
-    const url = process.env.OLLAMA_URL || 'http://host.docker.internal:11434';
-    const model = process.env.OLLAMA_MODEL || 'llama3.2:1b';
-    const prompt = `Convierte esta descripción de estructura organizacional en JSON.
-Descripción: "${texto}"
-Devuelve SOLO un JSON válido con esta forma, sin texto extra ni markdown:
-{"nombre":"Gerencia X","tipo":"gerencia","hijos":[{"nombre":"Líder","tipo":"unidad","hijos":[{"nombre":"Analista","tipo":"unidad","hijos":[]}]}]}
-Si la descripción menciona cantidades (ej "3 analistas"), genera esa cantidad de hijos con nombres numerados (Analista 1, Analista 2…).`;
-    const r = await fetch(`${url}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, prompt, stream: false, format: 'json' }),
-    });
-    if (!r.ok) {
-      const detalle = await r.text();
-      return res.status(502).json({ error: `Ollama ${r.status}: ${detalle.slice(0, 200)} (url=${url}, model=${model})` });
-    }
-    const { response } = await r.json();
-    try { tree = JSON.parse(response); } catch { return res.status(502).json({ error: 'La IA no devolvió JSON válido' }); }
-  }
+  if (!tree) return res.status(502).json({ error: 'No pude interpretar la descripción — intenta "una gerencia con N hijos y cada hijo M sub-hijos"' });
 
   async function insertar(nodo, parentId) {
     const { rows: [u] } = await pool.query(
