@@ -47,7 +47,7 @@ function extractDocxText(buffer) {
   const zip = new AdmZip(buffer);
   const xml = zip.readAsText('word/document.xml');
   return xml
-    .replace(/<w:p[ >]/g, '\n')
+    .replace(/<w:p\b[^>]*>/g, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/\[([^\]]*)\]/g, '')          // quita campos sin rellenar […]
