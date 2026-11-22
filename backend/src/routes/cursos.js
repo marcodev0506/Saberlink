@@ -42,6 +42,32 @@ router.get('/:id/imagen', async (req, res) => {
   res.sendFile(c.imagen_path);
 });
 
+// Genera el audio de una lección bajo demanda (ElevenLabs)
+router.post('/:id/audio/:leccionId', async (req, res) => {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) return res.status(503).json({ error: 'Falta ELEVENLABS_API_KEY en .env' });
+  const { rows: [l] } = await pool.query(
+    `SELECT l.id, l.texto FROM lecciones l JOIN cursos c ON c.id = l.curso_id
+     WHERE l.id = $1 AND c.id = $2 AND c.empresa_id = $3`,
+    [req.params.leccionId, req.params.id, req.user.empresa_id]
+  );
+  if (!l) return res.status(404).json({ error: 'Lección no encontrada' });
+  const texto = `${l.titulo ?? ''}\n${l.texto}`.slice(0, 4500);
+  const voice = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
+  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
+    method: 'POST',
+    headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: texto, model_id: 'eleven_multilingual_v2' }),
+  });
+  if (!r.ok) return res.status(502).json({ error: `ElevenLabs ${r.status}` });
+  const dir = `${process.env.STORAGE_DIR}/audios`;
+  await mkdir(dir, { recursive: true });
+  const path = `${dir}/${l.id}.mp3`;
+  await writeFile(path, Buffer.from(await r.arrayBuffer()));
+  await pool.query('UPDATE lecciones SET audio_path = $1 WHERE id = $2', [path, l.id]);
+  res.json({ ok: true });
+});
+
 // Audio de una lección
 router.get('/:id/audio/:leccionId', async (req, res) => {
   const { rows: [l] } = await pool.query(

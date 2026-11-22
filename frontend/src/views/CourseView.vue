@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { get } from '../api.js';
+import { get, post } from '../api.js';
 import AppLayout from '../components/AppLayout.vue';
 
 const route = useRoute();
@@ -10,6 +10,7 @@ const lecciones = ref([]);
 const evaluaciones = ref([]);
 const error = ref('');
 const reproduciendo = ref(null);
+const generando = ref(null);
 let audioEl = null;
 
 const token = localStorage.getItem('token');
@@ -26,7 +27,19 @@ async function cargar() {
 }
 
 async function play(leccion) {
-  if (!leccion.audio_path) { error.value = 'Esta unidad aún no tiene audio generado'; return; }
+  if (!leccion.audio_path) {
+    generando.value = leccion.id;
+    error.value = '';
+    try {
+      await post(`/api/cursos/${route.params.id}/audio/${leccion.id}`);
+      leccion.audio_path = 'ok';
+    } catch (err) {
+      error.value = err.message;
+      generando.value = null;
+      return;
+    }
+    generando.value = null;
+  }
   const r = await fetch(`http://localhost:3000/api/cursos/${route.params.id}/audio/${leccion.id}`,
     { headers: { Authorization: `Bearer ${token}` } });
   if (!r.ok) { error.value = 'No se pudo cargar el audio'; return; }
@@ -58,8 +71,8 @@ onMounted(cargar);
       <article v-for="(l, i) in lecciones" :key="l.id" class="unidad">
         <header>
           <strong>Unidad {{ l.orden }} — {{ l.titulo }}</strong>
-          <button class="play" @click="reproduciendo === l.id ? stop() : play(l)">
-            {{ reproduciendo === l.id ? '⏸' : '▶ Empezar' }}
+          <button class="play" :disabled="generando === l.id" @click="reproduciendo === l.id ? stop() : play(l)">
+            {{ generando === l.id ? 'Generando…' : (reproduciendo === l.id ? '⏸' : '▶ Empezar') }}
           </button>
         </header>
         <p>{{ l.texto }}</p>
