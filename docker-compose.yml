@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-saberlink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-saberlink}
+      POSTGRES_DB: ${POSTGRES_DB:-saberlink}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-saberlink}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-saberlink}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-saberlink}
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-saberlink}:${POSTGRES_PASSWORD:-saberlink}@postgres:5432/${POSTGRES_DB:-saberlink}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-saberlink}:${RABBITMQ_PASS:-saberlink}@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend/src:/app/src
+      - ./storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  web:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000
+    volumes:
+      - ./frontend/src:/app/src
+    depends_on:
+      - api
+
+  ia-worker:
+    build: ./workers/ia-worker
+    environment:
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-saberlink}:${RABBITMQ_PASS:-saberlink}@rabbitmq:5672
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    # Uncomment to run Ollama in-cluster, or point OLLAMA_URL at a local install.
+    # ollama:
+    #   image: ollama/ollama:latest
+    #   ports: ["11434:11434"]
+
+  voice-worker:
+    build: ./workers/voice-worker
+    environment:
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-saberlink}:${RABBITMQ_PASS:-saberlink}@rabbitmq:5672
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      STORAGE_DIR: /app/storage/audio
+    volumes:
+      - ./storage/audio:/app/storage/audio
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
