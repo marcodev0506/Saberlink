@@ -42,7 +42,7 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.title { color: #14204a; margin: 0 0 .25rem; }
+.title { color: var(--navy); margin: 0 0 .25rem; }
 .sub { color: #6b7280; margin: 0 0 1.75rem; font-size: .9rem; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
 .card {
@@ -51,7 +51,7 @@ onMounted(async () => {
   transition: transform .1s, box-shadow .15s;
 }
 .card:hover:not(.disabled) { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(15,30,80,.14); }
-.card h3 { margin: 0 0 .4rem; color: #14204a; font-size: 1rem; }
+.card h3 { margin: 0 0 .4rem; color: var(--navy); font-size: 1rem; }
 .card p { margin: 0; color: #6b7280; font-size: .85rem; line-height: 1.4; }
 .disabled { opacity: .55; cursor: default; }
 </style>

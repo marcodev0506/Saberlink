@@ -152,14 +152,14 @@ onMounted(cargar);
 
 <style scoped>
 .top { display: flex; justify-content: space-between; align-items: flex-start; }
-h1 { color: #14204a; margin: 0; }
+h1 { color: var(--navy); margin: 0; }
 .sub { color: #6b7280; font-size: .9rem; }
-.primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: #1a56db; color: #fff; font-weight: 700; cursor: pointer; }
+.primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: var(--teal); color: #fff; font-weight: 700; cursor: pointer; }
 .ghost { padding: .6rem 1.1rem; border: 1px solid #d4d9ea; border-radius: 9px; background: #fff; cursor: pointer; }
 .danger { background: #dc2626; }
 .actions { display: flex; gap: .5rem; }
 .link { text-decoration: none; color: #4b5563; font-size: .82rem; display: inline-flex; align-items: center; }
-.error { color: #b42318; }
+.error { color: var(--danger); }
 .empty { color: #9aa3b5; padding: 3rem 0; text-align: center; }
 .confirmtxt { color: #6b7280; font-size: .85rem; margin: 0; }
 
@@ -175,17 +175,17 @@ h1 { color: #14204a; margin: 0; }
     linear-gradient(#bfe0f5, #e8f4fc);
 }
 .body { padding: .9rem; position: relative; }
-.body h3 { margin: 0; font-size: .8rem; color: #14204a; }
+.body h3 { margin: 0; font-size: .8rem; color: var(--navy); }
 .body p { margin: .25rem 0; font-size: .72rem; color: #4b5563; text-transform: uppercase; }
 .fac { font-weight: 700; }
-.estado { position: absolute; top: .9rem; right: .9rem; font-size: .65rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; background: #eef1f7; color: #4b5563; text-transform: uppercase; }
-.estado.listo, .estado.publicado { background: #e8f7ee; color: #166534; }
-.estado.procesando { background: #fdf3e3; color: #b45309; }
-.del { margin-top: .4rem; border: 0; background: #eef1f7; border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
+.estado { position: absolute; top: .9rem; right: .9rem; font-size: .65rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; background: var(--cream); color: #4b5563; text-transform: uppercase; }
+.estado.listo, .estado.publicado { background: #e0f2f5; color: var(--teal-dark); }
+.estado.procesando { background: #fdeee3; color: var(--orange); }
+.del { margin-top: .4rem; border: 0; background: var(--cream); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
 
 .overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 360px; display: flex; flex-direction: column; gap: 1rem; }
-.dialog h2 { margin: 0; font-size: 1.05rem; color: #14204a; }
+.dialog h2 { margin: 0; font-size: 1.05rem; color: var(--navy); }
 .dialog label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: #374151; }
 .dialog input, .dialog select, .dialog textarea { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }

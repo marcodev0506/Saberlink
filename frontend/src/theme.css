@@ -1,0 +1,61 @@
+/* Saberlink design system — navy / teal / naranja sobre crema */
+:root {
+  --navy: #142d4c;
+  --navy-2: #1e3a5c;
+  --teal: #2a9db4;
+  --teal-dark: #1d7f93;
+  --orange: #f0783a;
+  --cream: #f5eedd;
+  --ink: #4b5563;
+  --danger: #b42318;
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: system-ui, 'Segoe UI', sans-serif;
+}
+
+/* Botones pill */
+.btn { border: 0; border-radius: 999px; font-weight: 700; cursor: pointer; font-size: .85rem; padding: .55rem 1.3rem; }
+.btn-primary { background: var(--navy); color: #fff; }
+.btn-primary:hover { background: var(--navy-2); }
+.btn-teal { background: var(--teal); color: #fff; }
+.btn-orange { background: var(--orange); color: #fff; }
+.btn-ghost { background: #fff; color: var(--navy); border: 2px solid var(--navy); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn-danger { background: var(--danger); color: #fff; }
+
+/* Botones de icono circulares (estilo referencia) */
+.iconbtn {
+  width: 38px; height: 38px; border-radius: 999px; border: 0;
+  background: var(--navy); color: #fff; font-size: 1rem;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.iconbtn.teal { background: var(--teal); }
+.iconbtn.orange { background: var(--orange); }
+.iconbtn.ghosty { background: #fff; color: var(--navy); border: 2px solid var(--navy); }
+
+/* Tarjeta base */
+.card-base { background: #fff; border-radius: 16px; box-shadow: 0 4px 16px rgba(20,45,76,.12); }
+
+/* Inputs pill estilo droplist */
+.input-pill, input.input-pill, textarea.input-pill, select.input-pill {
+  width: 100%; padding: .65rem 1rem; border-radius: 999px;
+  border: 2px solid var(--orange); background: #fff; color: var(--navy);
+  font-size: .88rem; box-sizing: border-box;
+}
+textarea.input-pill { border-radius: 14px; }
+.input-pill:focus { outline: none; border-color: var(--teal); }
+
+/* Tab pill */
+.tabpill { border-radius: 999px; padding: .4rem 1rem; font-weight: 700; font-size: .82rem; }
+
+/* Modal */
+.dialog-base { background: #fff; border-radius: 18px; padding: 1.4rem; box-shadow: 0 10px 40px rgba(20,45,76,.25); }
+.dialog-base h2 { color: var(--navy); margin-top: 0; }
+.dialog-base label { display: block; font-size: .8rem; font-weight: 700; color: var(--navy); margin: .7rem 0 .3rem; }
+.dialog-base input, .dialog-base textarea, .dialog-base select {
+  width: 100%; padding: .55rem .8rem; border: 2px solid #e3e7ef; border-radius: 10px; box-sizing: border-box;
+}
+.dialog-base input:focus, .dialog-base textarea:focus, .dialog-base select:focus { outline: none; border-color: var(--teal); }

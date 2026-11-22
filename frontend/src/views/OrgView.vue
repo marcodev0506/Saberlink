@@ -231,22 +231,22 @@ onMounted(cargar);
 
 <style scoped>
 .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
-h1 { color: #14204a; margin: 0; }
+h1 { color: var(--navy); margin: 0; }
 .sub { color: #6b7280; font-size: .9rem; margin: .3rem 0 0; }
-.primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: #1a56db; color: #fff; font-weight: 700; cursor: pointer; }
+.primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: var(--teal); color: #fff; font-weight: 700; cursor: pointer; }
 .ghost { padding: .6rem 1.1rem; border: 1px solid #d4d9ea; border-radius: 9px; background: #fff; cursor: pointer; }
 .danger { background: #dc2626; }
 .confirmtxt { margin: 0; color: #6b7280; font-size: .85rem; }
-.error { color: #b42318; }
+.error { color: var(--danger); }
 .empty { color: #9aa3b5; font-size: .85rem; padding: .6rem 0; }
 .big { text-align: center; padding: 3rem 0; }
 
 .board-row { margin-top: 1.5rem; }
 .row-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #c9d2e8; padding-bottom: .4rem; }
-.row-head h2 { margin: 0; font-size: 1rem; color: #14204a; text-transform: capitalize; }
+.row-head h2 { margin: 0; font-size: 1rem; color: var(--navy); text-transform: capitalize; }
 .edit-lvl { border: 0; background: none; color: #9aa3b5; cursor: pointer; font-size: .85rem; }
-.edit-lvl:hover { color: #3d5bf0; }
-.add { padding: .4rem 1.2rem; border: 0; border-radius: 999px; background: #3d5bf0; color: #fff; font-weight: 700; font-size: .85rem; cursor: pointer; }
+.edit-lvl:hover { color: var(--navy); }
+.add { padding: .4rem 1.2rem; border: 0; border-radius: 999px; background: var(--navy); color: #fff; font-weight: 700; font-size: .85rem; cursor: pointer; }
 
 .cards { display: flex; flex-wrap: wrap; gap: .9rem; padding: .9rem 0; }
 .post {
@@ -255,25 +255,25 @@ h1 { color: #14204a; margin: 0; }
 }
 .post:active { cursor: grabbing; }
 .post header { display: flex; justify-content: space-between; align-items: center; }
-.post strong { color: #14204a; font-size: .95rem; }
-.plus { border: 0; background: #3d5bf0; color: #fff; width: 26px; height: 26px; border-radius: 50%; font-size: 1rem; cursor: pointer; line-height: 1; }
+.post strong { color: var(--navy); font-size: .95rem; }
+.plus { border: 0; background: var(--navy); color: #fff; width: 26px; height: 26px; border-radius: 50%; font-size: 1rem; cursor: pointer; line-height: 1; }
 .post p { margin: 0; font-size: .8rem; color: #4b5563; }
 .post p b { color: #374151; }
 .post .desc { color: #6b7280; font-size: .78rem; }
 .group { margin-top: .35rem; }
 .lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .03em; }
-.comp-l { color: #b45309; }
-.hab-l { color: #166534; }
+.comp-l { color: var(--orange); }
+.hab-l { color: var(--teal-dark); }
 .tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .2rem; }
 .tag { font-style: normal; font-size: .68rem; padding: .1rem .5rem; border-radius: 999px; font-weight: 600; }
-.comp { background: #fdf3e3; color: #b45309; }
-.hab { background: #e8f7ee; color: #166534; }
+.comp { background: #fdeee3; color: var(--orange); }
+.hab { background: #e0f2f5; color: var(--teal-dark); }
 .post footer { display: flex; gap: .3rem; margin-top: .5rem; }
-.post footer button { border: 0; background: #eef1f7; border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
+.post footer button { border: 0; background: var(--cream); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
 
 .overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 360px; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; }
-.dialog h2 { margin: 0; font-size: 1.05rem; color: #14204a; }
+.dialog h2 { margin: 0; font-size: 1.05rem; color: var(--navy); }
 .dialog label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: #374151; }
 .dialog input, .dialog select, .dialog textarea { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }

@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import App from './App.vue';
+import './theme.css';
 import LoginView from './views/LoginView.vue';
 import RegisterView from './views/RegisterView.vue';
 import HomeView from './views/HomeView.vue';

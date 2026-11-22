@@ -90,25 +90,25 @@ onMounted(cargar);
 
 <style scoped>
 .top { display: flex; justify-content: space-between; align-items: flex-start; }
-.back { color: #1a56db; font-size: .85rem; font-weight: 600; text-decoration: none; }
-h1 { color: #14204a; margin: .3rem 0 0; }
+.back { color: var(--teal); font-size: .85rem; font-weight: 600; text-decoration: none; }
+h1 { color: var(--navy); margin: .3rem 0 0; }
 .sub { color: #6b7280; font-size: .9rem; margin: .2rem 0 0; }
-.error { color: #b42318; }
-.estado { font-size: .7rem; font-weight: 700; padding: .25rem .7rem; border-radius: 999px; background: #eef1f7; color: #4b5563; text-transform: uppercase; }
-.estado.listo, .estado.publicado { background: #e8f7ee; color: #166534; }
-.estado.procesando { background: #fdf3e3; color: #b45309; }
+.error { color: var(--danger); }
+.estado { font-size: .7rem; font-weight: 700; padding: .25rem .7rem; border-radius: 999px; background: var(--cream); color: #4b5563; text-transform: uppercase; }
+.estado.listo, .estado.publicado { background: #e0f2f5; color: var(--teal-dark); }
+.estado.procesando { background: #fdeee3; color: var(--orange); }
 .empty { color: #9aa3b5; padding: 2rem 0; text-align: center; }
 
 .unidades { margin-top: 1.4rem; display: flex; flex-direction: column; gap: .9rem; }
 .unidad { background: #fff; border-radius: 14px; padding: 1.1rem 1.3rem; box-shadow: 0 4px 16px rgba(15,30,80,.1); }
 .unidad header { display: flex; justify-content: space-between; align-items: center; }
-.unidad strong { color: #14204a; }
+.unidad strong { color: var(--navy); }
 .unidad p { color: #4b5563; font-size: .85rem; line-height: 1.5; }
-.play { border: 0; background: #3d5bf0; color: #fff; padding: .45rem 1.1rem; border-radius: 999px; font-weight: 700; font-size: .82rem; cursor: pointer; }
+.play { border: 0; background: var(--navy); color: #fff; padding: .45rem 1.1rem; border-radius: 999px; font-weight: 700; font-size: .82rem; cursor: pointer; }
 
-.evalbtn { margin-top: 1.6rem; border: 0; background: #14204a; color: #fff; padding: .7rem 1.4rem; border-radius: 999px; font-weight: 700; font-size: .9rem; cursor: pointer; }
+.evalbtn { margin-top: 1.6rem; border: 0; background: var(--navy); color: #fff; padding: .7rem 1.4rem; border-radius: 999px; font-weight: 700; font-size: .9rem; cursor: pointer; }
 .evals { margin-top: 1.2rem; }
-.evals h2 { color: #14204a; font-size: 1.05rem; }
+.evals h2 { color: var(--navy); font-size: 1.05rem; }
 .eval { background: #fff; border-radius: 12px; padding: 1rem 1.2rem; margin-top: .7rem; box-shadow: 0 3px 12px rgba(15,30,80,.08); }
 .eval p { margin: 0 0 .5rem; font-size: .9rem; }
 .eval label { display: block; font-size: .85rem; color: #4b5563; padding: .2rem 0; }

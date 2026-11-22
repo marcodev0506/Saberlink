@@ -79,18 +79,18 @@ onMounted(cargar);
 </template>
 
 <style scoped>
-h1 { color: #14204a; }
+h1 { color: var(--navy); }
 .card { background: #fff; border-radius: 14px; padding: 1.5rem; box-shadow: 0 6px 24px rgba(15,30,80,.08); margin-top: 1.5rem; }
 h2 { font-size: 1rem; margin: 0 0 1rem; }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
 label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: #374151; }
 input, select { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; }
-button { grid-column: 1 / -1; padding: .7rem; border: 0; border-radius: 8px; background: #1a56db; color: #fff; font-weight: 700; cursor: pointer; }
+button { grid-column: 1 / -1; padding: .7rem; border: 0; border-radius: 8px; background: var(--teal); color: #fff; font-weight: 700; cursor: pointer; }
 table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 th { text-align: left; color: #6b7280; font-size: .78rem; text-transform: uppercase; padding: .4rem .5rem; }
-td { padding: .55rem .5rem; border-top: 1px solid #eef1f7; }
-.chip { padding: .15rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 700; background: #eef2ff; color: #1a56db; }
-.chip[data-rol='experto'] { background: #fdf3e3; color: #b45309; }
-.chip[data-rol='trabajador'] { background: #e8f7ee; color: #166534; }
-.error { color: #b42318; } .ok { color: #166534; }
+td { padding: .55rem .5rem; border-top: 1px solid var(--cream); }
+.chip { padding: .15rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 700; background: #eef2ff; color: var(--teal); }
+.chip[data-rol='experto'] { background: #fdeee3; color: var(--orange); }
+.chip[data-rol='trabajador'] { background: #e0f2f5; color: var(--teal-dark); }
+.error { color: var(--danger); } .ok { color: var(--teal-dark); }
 </style>

@@ -60,19 +60,19 @@ onMounted(cargar);
 </template>
 
 <style scoped>
-.back { color: #1a56db; font-size: .85rem; font-weight: 600; text-decoration: none; }
+.back { color: var(--teal); font-size: .85rem; font-weight: 600; text-decoration: none; }
 .top { margin-top: .8rem; }
-h1 { color: #14204a; margin: .3rem 0 0; }
+h1 { color: var(--navy); margin: .3rem 0 0; }
 .sub { color: #6b7280; font-size: .9rem; }
-.error { color: #b42318; }
+.error { color: var(--danger); }
 .evals { margin-top: 1.2rem; }
 .eval { background: #fff; border-radius: 12px; padding: 1rem 1.2rem; margin-top: .7rem; box-shadow: 0 3px 12px rgba(15,30,80,.08); }
 .eval p { margin: 0 0 .5rem; font-size: .9rem; }
 .eval label { display: block; font-size: .85rem; color: #4b5563; padding: .35rem .5rem; border-radius: 8px; cursor: pointer; }
-.eval label.sel { background: #e7edfd; }
-.eval label.ok { background: #e8f7ee; color: #166534; font-weight: 600; }
-.eval label.bad { background: #fdeaea; color: #b42318; }
-.resultado { margin-top: 1.2rem; font-size: 1.1rem; color: #14204a; }
-.primary { margin-top: 1.4rem; padding: .7rem 1.5rem; border: 0; border-radius: 9px; background: #1a56db; color: #fff; font-weight: 700; cursor: pointer; }
+.eval label.sel { background: #e0f2f5; }
+.eval label.ok { background: #e0f2f5; color: var(--teal-dark); font-weight: 600; }
+.eval label.bad { background: #fdeaea; color: var(--danger); }
+.resultado { margin-top: 1.2rem; font-size: 1.1rem; color: var(--navy); }
+.primary { margin-top: 1.4rem; padding: .7rem 1.5rem; border: 0; border-radius: 9px; background: var(--teal); color: #fff; font-weight: 700; cursor: pointer; }
 .primary:disabled { opacity: .5; cursor: default; }
 </style>
