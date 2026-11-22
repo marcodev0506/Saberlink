@@ -6,6 +6,7 @@ import AppLayout from '../components/AppLayout.vue';
 
 const route = useRoute();
 const curso = ref(null);
+const imagen = ref(null);
 const lecciones = ref([]);
 const evaluaciones = ref([]);
 const error = ref('');
@@ -20,6 +21,11 @@ async function cargar() {
     const data = await get(`/api/cursos/${route.params.id}`);
     curso.value = data.curso;
     lecciones.value = data.lecciones;
+    if (data.curso.imagen_path) {
+      const r = await fetch(`http://localhost:3000/api/cursos/${route.params.id}/imagen`,
+        { headers: { Authorization: `Bearer ${token}` } });
+      if (r.ok) imagen.value = URL.createObjectURL(await r.blob());
+    }
     evaluaciones.value = data.curso.evaluaciones || [];
   } catch (err) {
     error.value = err.message;
@@ -60,7 +66,10 @@ onMounted(cargar);
     <header class="top" v-if="curso">
       <div>
         <router-link to="/cursos" class="back">← Cursos</router-link>
-        <h1>{{ curso.titulo }}</h1>
+        <div class="titulorow">
+          <img v-if="imagen" :src="imagen" class="portada" alt="Imagen del curso" />
+          <h1>{{ curso.titulo }}</h1>
+        </div>
         <p class="sub">{{ curso.objetivo }}</p>
       </div>
       <span class="estado" :class="curso.estado">{{ curso.estado }}</span>
@@ -101,6 +110,8 @@ onMounted(cargar);
 .top { display: flex; justify-content: space-between; align-items: flex-start; }
 .back { color: var(--navy); font-size: .85rem; font-weight: 600; text-decoration: none; }
 h1 { color: var(--navy); margin: .3rem 0 0; }
+.titulorow { display: flex; align-items: center; gap: .8rem; }
+.portada { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 3px solid var(--navy); }
 .sub { color: #6b7280; font-size: .9rem; margin: .2rem 0 0; }
 .error { color: var(--danger); }
 .estado { font-size: .7rem; font-weight: 700; padding: .25rem .7rem; border-radius: 999px; background: var(--cream); color: #4b5563; text-transform: uppercase; }
