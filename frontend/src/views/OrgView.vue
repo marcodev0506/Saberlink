@@ -116,7 +116,7 @@ onMounted(cargar);
         <h1>Estructura organizacional</h1>
         <p class="sub">Arrastra una tarjeta sobre otra para anidarla. ⊕ agrega una sub-unidad y + define descripción, competencias y habilidades.</p>
       </div>
-      <button v-if="esRrhh" class="primary" @click="abrirCard()">+ Unidad</button>
+      <button v-if="esRrhh" class="primary" @click="abrirCard()">Agregar</button>
     </header>
     <p v-if="error" class="error">{{ error }}</p>
 
