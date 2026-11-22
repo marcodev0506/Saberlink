@@ -71,3 +71,14 @@ CREATE TABLE IF NOT EXISTS lecciones (
 CREATE INDEX IF NOT EXISTS lecciones_curso_idx ON lecciones(curso_id, orden);
 ALTER TABLE cursos ADD COLUMN IF NOT EXISTS imagen_path TEXT NOT NULL DEFAULT '';
 
+CREATE TABLE IF NOT EXISTS intentos (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  curso_id    UUID NOT NULL REFERENCES cursos(id) ON DELETE CASCADE,
+  usuario_id  UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  respuestas  JSONB NOT NULL DEFAULT '{}'::jsonb,
+  puntaje     INT NOT NULL DEFAULT 0,
+  total       INT NOT NULL DEFAULT 0,
+  aprobado    BOOLEAN NOT NULL DEFAULT false,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+

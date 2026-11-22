@@ -150,6 +150,33 @@ router.put('/:id', async (req, res) => {
   res.json({ curso: c });
 });
 
+// El trabajador presenta la evaluación y se guarda el intento
+router.post('/:id/evaluacion', async (req, res) => {
+  const { respuestas } = req.body ?? {};
+  const { rows: [c] } = await pool.query(
+    'SELECT id, evaluaciones FROM cursos WHERE id = $1 AND empresa_id = $2',
+    [req.params.id, req.user.empresa_id]
+  );
+  if (!c) return res.status(404).json({ error: 'Curso no encontrado' });
+  const evs = c.evaluaciones || [];
+  const puntaje = evs.filter((e, i) => respuestas?.[String(i)] === e.correcta).length;
+  const aprobado = evs.length > 0 && puntaje === evs.length;
+  await pool.query(
+    'INSERT INTO intentos (curso_id, usuario_id, respuestas, puntaje, total, aprobado) VALUES ($1, $2, $3::jsonb, $4, $5, $6)',
+    [c.id, req.user.id, JSON.stringify(respuestas ?? {}), puntaje, evs.length, aprobado]
+  );
+  res.json({ puntaje, total: evs.length, aprobado });
+});
+
+router.get('/:id/intentos', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT i.puntaje, i.total, i.aprobado, i.created_at, u.nombre
+     FROM intentos i JOIN usuarios u ON u.id = i.usuario_id WHERE i.curso_id = $1 ORDER BY i.created_at DESC`,
+    [req.params.id]
+  );
+  res.json({ intentos: rows });
+});
+
 router.delete('/:id', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Experto' });
   const { rowCount } = await pool.query(

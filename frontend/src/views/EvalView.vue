@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { get } from '../api.js';
+import { get, post } from '../api.js';
 import AppLayout from '../components/AppLayout.vue';
 
 const route = useRoute();
@@ -11,6 +11,7 @@ const respuestas = ref({});
 const error = ref('');
 const enviado = ref(false);
 const puntaje = ref(null);
+const aprobado = ref(false);
 
 async function cargar() {
   try {
@@ -22,11 +23,15 @@ async function cargar() {
   }
 }
 
-function enviar() {
-  const total = evaluaciones.value.length;
-  const ok = evaluaciones.value.filter((e, i) => respuestas.value[i] === e.correcta).length;
-  puntaje.value = `${ok} / ${total}`;
-  enviado.value = true;
+async function enviar() {
+  try {
+    const r = await post(`/api/cursos/${route.params.id}/evaluacion`, { respuestas: respuestas.value });
+    puntaje.value = `${r.puntaje} / ${r.total}`;
+    aprobado.value = r.aprobado;
+    enviado.value = true;
+  } catch (err) {
+    error.value = err.message;
+  }
 }
 
 onMounted(cargar);
@@ -50,7 +55,7 @@ onMounted(cargar);
         </label>
       </div>
       <div v-if="enviado" class="resultado">
-        Resultado: <b>{{ puntaje }}</b>
+        Resultado: <b>{{ puntaje }}</b> — <b :style="{color: aprobado ? 'var(--navy)' : 'var(--danger)'}">{{ aprobado ? 'APROBADO' : 'NO APROBADO' }}</b>
       </div>
       <button v-if="!enviado" class="primary" :disabled="Object.keys(respuestas).length < evaluaciones.length" @click="enviar">
         Enviar evaluación
