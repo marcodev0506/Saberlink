@@ -12,6 +12,7 @@ const error = ref('');
 const enviado = ref(false);
 const puntaje = ref(null);
 const aprobado = ref(false);
+const tipo = route.query.tipo === 'diagnostico' ? 'diagnostico' : 'final';
 
 async function cargar() {
   try {
@@ -25,7 +26,7 @@ async function cargar() {
 
 async function enviar() {
   try {
-    const r = await post(`/api/cursos/${route.params.id}/evaluacion`, { respuestas: respuestas.value });
+    const r = await post(`/api/cursos/${route.params.id}/evaluacion`, { respuestas: respuestas.value, tipo });
     puntaje.value = `${r.puntaje} / ${r.total}`;
     aprobado.value = r.aprobado;
     enviado.value = true;
@@ -41,7 +42,7 @@ onMounted(cargar);
   <AppLayout>
     <router-link :to="`/cursos/${route.params.id}`" class="back">← Volver al curso</router-link>
     <header class="top" v-if="curso">
-      <h1>Evaluación — {{ curso.titulo }}</h1>
+      <h1>{{ tipo === 'diagnostico' ? 'Evaluación diagnóstica' : 'Evaluación' }} — {{ curso.titulo }}</h1>
       <p class="sub">{{ evaluaciones.length }} preguntas</p>
     </header>
     <p v-if="error" class="error">{{ error }}</p>

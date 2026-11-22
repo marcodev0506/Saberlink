@@ -67,6 +67,10 @@ onMounted(cargar);
     </header>
     <p v-if="error" class="error">{{ error }}</p>
 
+    <button v-if="evaluaciones.length" class="evalbtn diag" @click="$router.push(`/cursos/${route.params.id}/evaluacion?tipo=diagnostico`)">
+      ▸ Presentar evaluación diagnóstica
+    </button>
+
     <section class="unidades">
       <article v-for="(l, i) in lecciones" :key="l.id" class="unidad">
         <header>

@@ -152,7 +152,8 @@ router.put('/:id', async (req, res) => {
 
 // El trabajador presenta la evaluación y se guarda el intento
 router.post('/:id/evaluacion', async (req, res) => {
-  const { respuestas } = req.body ?? {};
+  const { respuestas, tipo } = req.body ?? {};
+  const t = tipo === 'diagnostico' ? 'diagnostico' : 'final';
   const { rows: [c] } = await pool.query(
     'SELECT id, evaluaciones FROM cursos WHERE id = $1 AND empresa_id = $2',
     [req.params.id, req.user.empresa_id]
@@ -162,8 +163,8 @@ router.post('/:id/evaluacion', async (req, res) => {
   const puntaje = evs.filter((e, i) => respuestas?.[String(i)] === e.correcta).length;
   const aprobado = evs.length > 0 && puntaje === evs.length;
   await pool.query(
-    'INSERT INTO intentos (curso_id, usuario_id, respuestas, puntaje, total, aprobado) VALUES ($1, $2, $3::jsonb, $4, $5, $6)',
-    [c.id, req.user.id, JSON.stringify(respuestas ?? {}), puntaje, evs.length, aprobado]
+    'INSERT INTO intentos (curso_id, usuario_id, respuestas, puntaje, total, aprobado, tipo) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7)',
+    [c.id, req.user.id, JSON.stringify(respuestas ?? {}), puntaje, evs.length, aprobado, t]
   );
   res.json({ puntaje, total: evs.length, aprobado });
 });

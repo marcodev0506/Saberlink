@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS intentos (
   puntaje     INT NOT NULL DEFAULT 0,
   total       INT NOT NULL DEFAULT 0,
   aprobado    BOOLEAN NOT NULL DEFAULT false,
+  tipo        TEXT NOT NULL DEFAULT 'final' CHECK (tipo IN ('diagnostico','final')),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
