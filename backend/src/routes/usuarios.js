@@ -17,7 +17,7 @@ function requireRrhh(req, res, next) {
 router.get('/', requireRrhh, async (req, res) => {
   const { rows } = await pool.query(
     `SELECT id, nombre, email, rol, activo, created_at FROM usuarios
-     WHERE empresa_id = $1 ORDER BY created_at`, [req.user.empresa_id]
+     WHERE empresa_id = $1 AND activo = true ORDER BY created_at`, [req.user.empresa_id]
   );
   res.json({ usuarios: rows });
 });

@@ -126,16 +126,15 @@ onMounted(cargar);
         <thead>
           <tr>
             <th><input type="checkbox" :checked="todosMarcados" @change="toggleTodos" /></th>
-            <th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Alta</th>
+            <th>Nombre</th><th>Correo</th><th>Rol</th><th>Alta</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="u in usuariosPagina" :key="u.id" :class="{ inactivo: !u.activo }">
+          <tr v-for="u in usuariosPagina" :key="u.id">
             <td><input v-if="u.id !== yoId" type="checkbox" :checked="seleccion.has(u.id)" @change="toggleUno(u.id)" /></td>
             <td>{{ u.nombre }}</td>
             <td>{{ u.email }}</td>
             <td><span class="chip" :data-rol="u.rol">{{ u.rol }}</span></td>
-            <td><span class="chip" :data-activo="u.activo">{{ u.activo ? 'activo' : 'inhabilitado' }}</span></td>
             <td>{{ new Date(u.created_at).toLocaleDateString() }}</td>
           </tr>
         </tbody>
@@ -143,7 +142,6 @@ onMounted(cargar);
       <div class="bulk" v-if="seleccionados.length">
         <span>{{ seleccionados.length }} seleccionados</span>
         <button class="warn" @click="cambiarEstado(false)">Inhabilitar</button>
-        <button @click="cambiarEstado(true)">Habilitar</button>
       </div>
       <nav class="pager" v-if="totalPaginas > 1">
         <button :disabled="pagina === 0" @click="pagina--">← Anterior</button>
@@ -165,8 +163,6 @@ h1 { color: var(--navy); }
 .bulk { display: flex; align-items: center; gap: .8rem; margin-top: 1rem; font-size: .85rem; font-weight: 600; color: var(--navy); }
 .bulk button { padding: .45rem 1rem; border: 0; border-radius: 8px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
 .bulk button.warn { background: var(--danger); }
-.chip[data-activo='false'] { background: #f8d7d5; color: var(--danger); }
-tr.inactivo td { opacity: .7; }
 .loading { display: flex; align-items: center; gap: .5rem; color: var(--navy); font-weight: 600; font-size: .85rem; }
 .spinner { width: 16px; height: 16px; border: 2px solid #e8dcc4; border-top-color: var(--navy); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
