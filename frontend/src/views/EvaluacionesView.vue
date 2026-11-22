@@ -84,7 +84,7 @@ function fecha(iso) {
             <td><em class="tagtipo" :class="tipoKey(r.tipo)">{{ tipoLabel(r.tipo) }}</em></td>
             <td>{{ r.puntaje }} / {{ r.total }}</td>
             <td><em class="res" :class="{ ok: r.aprobado }">{{ r.aprobado ? 'Aprobado' : 'Reprobado' }}</em></td>
-            <td><button v-if="r.certificado" class="certbtn" @click="descargarCert(r.certificado)">📜 PDF</button><span v-else>—</span></td>
+            <td><button v-if="r.certificado && r.aprobado && tipoKey(r.tipo) === 'teorica'" class="certbtn" @click="descargarCert(r.certificado)">📜 PDF</button><span v-else>—</span></td>
             <td>{{ fecha(r.created_at) }}</td>
           </tr>
         </tbody>
