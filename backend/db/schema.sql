@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS cursos (
   imagen_path   TEXT NOT NULL DEFAULT '',
   estado        TEXT NOT NULL DEFAULT 'borrador' CHECK (estado IN ('borrador','procesando','listo','publicado')),
   competencias  JSONB NOT NULL DEFAULT '[]'::jsonb,
+  habilidades   JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS cursos_empresa_idx ON cursos(empresa_id);
@@ -90,3 +91,4 @@ CREATE TABLE IF NOT EXISTS intentos (
 );
 ALTER TABLE intentos ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'final' CHECK (tipo IN ('diagnostico','final'));
 
+ALTER TABLE cursos ADD COLUMN IF NOT EXISTS habilidades JSONB NOT NULL DEFAULT '[]'::jsonb;

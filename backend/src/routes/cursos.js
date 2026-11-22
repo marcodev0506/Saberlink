@@ -81,7 +81,7 @@ router.get('/:id/audio/:leccionId', async (req, res) => {
 
 router.post('/', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
-  const { titulo, objetivo, facilitador_id, competencias, archivo_base64, archivo_nombre, imagen_base64, imagen_nombre } = req.body ?? {};
+  const { titulo, objetivo, facilitador_id, competencias, habilidades, archivo_base64, archivo_nombre, imagen_base64, imagen_nombre } = req.body ?? {};
   if (!titulo?.trim()) return res.status(400).json({ error: 'Falta el título' });
   if (facilitador_id) {
     const { rows: [fac] } = await pool.query(
@@ -92,11 +92,11 @@ router.post('/', async (req, res) => {
   }
 
   const { rows: [c] } = await pool.query(
-    `INSERT INTO cursos (empresa_id, titulo, objetivo, facilitador_id, competencias)
-     VALUES ($1, $2, $3, $4, $5::jsonb)
+    `INSERT INTO cursos (empresa_id, titulo, objetivo, facilitador_id, competencias, habilidades)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)
      RETURNING id, titulo, objetivo, estado`,
     [req.user.empresa_id, titulo.trim(), objetivo ?? '', facilitador_id || null,
-     JSON.stringify(competencias ?? [])]
+     JSON.stringify(competencias ?? []), JSON.stringify(habilidades ?? [])]
   );
 
   if (archivo_base64) {
@@ -125,17 +125,19 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
-  const { titulo, objetivo, facilitador_id, competencias, estado, imagen_base64, imagen_nombre } = req.body ?? {};
+  const { titulo, objetivo, facilitador_id, competencias, habilidades, estado, imagen_base64, imagen_nombre } = req.body ?? {};
   const { rows: [c] } = await pool.query(
     `UPDATE cursos SET
        titulo = COALESCE($3, titulo),
        objetivo = COALESCE($4, objetivo),
        facilitador_id = COALESCE($5, facilitador_id),
        competencias = COALESCE($6, competencias),
+       habilidades = COALESCE($8, habilidades),
        estado = COALESCE($7, estado)
      WHERE id = $1 AND empresa_id = $2 RETURNING id, titulo, objetivo, estado`,
     [req.params.id, req.user.empresa_id, titulo ?? null, objetivo ?? null,
-     facilitador_id ?? null, competencias != null ? JSON.stringify(competencias) : null, estado ?? null]
+     facilitador_id ?? null, competencias != null ? JSON.stringify(competencias) : null, estado ?? null,
+     habilidades != null ? JSON.stringify(habilidades) : null]
   );
   if (!c) return res.status(404).json({ error: 'Curso no encontrado' });
   if (imagen_base64) {

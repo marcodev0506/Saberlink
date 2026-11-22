@@ -13,6 +13,14 @@ const user = JSON.parse(localStorage.getItem('user') || '{}');
 const puedeCrear = user.rol === 'rrhh' || user.rol === 'gestor_curso';
 
 const f = ref({ titulo: '', objetivo: '', facilitador_id: '' });
+const tags = ref({ competencias: [], habilidades: [] });
+const tagDraft = ref({ competencias: '', habilidades: '' });
+function addTag(campo) {
+  const t = tagDraft.value[campo].trim();
+  if (t && !tags.value[campo].includes(t)) tags.value[campo].push(t);
+  tagDraft.value[campo] = '';
+}
+function delTag(campo, i) { tags.value[campo].splice(i, 1); }
 const pdfFile = ref(null);
 const imgFile = ref(null);
 const editando = ref(null);        // id del curso que se edita
@@ -51,6 +59,8 @@ function fileToB64(file) {
 function editar(c) {
   editando.value = c.id;
   f.value = { titulo: c.titulo, objetivo: c.objetivo, facilitador_id: '' };
+  tags.value = { competencias: [...(c.competencias || [])], habilidades: [...(c.habilidades || [])] };
+  tagDraft.value = { competencias: '', habilidades: '' };
   modal.value = true;
 }
 
@@ -60,7 +70,7 @@ async function guardar() {
   try {
     const archivo_base64 = await fileToB64(pdfFile.value);
     const imagen_base64 = await fileToB64(imgFile.value);
-    const body = { ...f.value, archivo_base64, archivo_nombre: pdfFile.value?.name, imagen_base64, imagen_nombre: imgFile.value?.name };
+    const body = { ...f.value, ...tags.value, archivo_base64, archivo_nombre: pdfFile.value?.name, imagen_base64, imagen_nombre: imgFile.value?.name };
     if (editando.value) {
       await put(`/api/cursos/${editando.value}`, body);
     } else {
@@ -69,6 +79,7 @@ async function guardar() {
     modal.value = false;
     editando.value = null;
     f.value = { titulo: '', objetivo: '', facilitador_id: '' };
+    tags.value = { competencias: [], habilidades: [] };
     pdfFile.value = null;
     imgFile.value = null;
     await cargar();
@@ -129,6 +140,14 @@ onMounted(cargar);
         <label>Título <input v-model="f.titulo" placeholder="Inducción de seguridad" /></label>
         <label>Objetivo general <textarea v-model="f.objetivo" rows="2" /></label>
         <label>Imagen del curso <input type="file" accept="image/*" @change="onImg" /></label>
+        <div class="tagfield" v-for="campo in ['competencias','habilidades']" :key="campo">
+          <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }} <span class="hint">(Enter para agregar)</span></label>
+          <div class="chips">
+            <em v-for="(t, i) in tags[campo]" :key="t" class="tag" :class="campo === 'competencias' ? 'comp' : 'hab'"
+                @click="delTag(campo, i)">{{ t }} ×</em>
+            <input v-model="tagDraft[campo]" @keydown.enter.prevent="addTag(campo)" placeholder="Escribe y presiona Enter" />
+          </div>
+        </div>
         <label v-if="!editando">Contenido (PDF o plantilla DOCX) <input type="file" accept=".pdf,.docx" @change="onFile" /></label>
         <div class="dialog-actions">
           <button class="ghost" @click="modal = false">Cancelar</button>
@@ -189,4 +208,11 @@ h1 { color: var(--navy); margin: 0; }
 .dialog label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: #374151; }
 .dialog input, .dialog select, .dialog textarea { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+.hint { font-weight: 400; color: #9aa3b5; }
+.tagfield label { font-size: .8rem; font-weight: 600; color: #374151; display: block; margin-bottom: .35rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .3rem; border: 1.5px solid #e2e6f0; border-radius: 8px; padding: .45rem; }
+.chips input { flex: 1; min-width: 110px; border: 0; outline: none; font-family: inherit; font-size: .85rem; }
+.tag { font-style: normal; font-size: .68rem; padding: .1rem .5rem; border-radius: 999px; font-weight: 600; cursor: pointer; }
+.comp { background: #fdeee3; color: var(--orange); }
+.hab { background: #dde6f0; color: var(--navy); }
 </style>
