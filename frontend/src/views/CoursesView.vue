@@ -136,14 +136,14 @@ onMounted(cargar);
     <div v-if="modal === true" class="overlay" @click.self="modal = false">
       <div class="dialog">
         <h2>{{ editando ? 'Editar curso' : 'Nuevo curso' }}</h2>
+        <label>Imagen del curso <input type="file" accept="image/*" @change="onImg" /></label>
         <label>Título <input v-model="f.titulo" placeholder="Inducción de seguridad" /></label>
         <label>Objetivo general <textarea v-model="f.objetivo" rows="2" /></label>
-        <label>Imagen del curso <input type="file" accept="image/*" @change="onImg" /></label>
         <div class="tagfield" v-for="campo in ['competencias','habilidades']" :key="campo">
           <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }} <span class="hint">(del banco central)</span></label>
           <TagSelect :tipo="campo === 'competencias' ? 'competencia' : 'habilidad'" v-model="tags[campo]" />
         </div>
-        <label v-if="!editando">Contenido (PDF o plantilla DOCX) <input type="file" accept=".pdf,.docx" @change="onFile" /></label>
+        <label>Contenido (PDF o plantilla DOCX) <input type="file" accept=".pdf,.docx" @change="onFile" /></label>
         <div class="dialog-actions">
           <button class="ghost" @click="modal = false">Cancelar</button>
           <button class="primary" :disabled="guardando" @click="guardar">{{ guardando ? 'Guardando…' : (editando ? 'Guardar cambios' : 'Guardar') }}</button>
@@ -202,7 +202,7 @@ h1 { color: var(--navy); margin: 0; }
 .del { margin-top: .4rem; border: 0; background: var(--cream); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
 
 .overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
-.dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 360px; display: flex; flex-direction: column; gap: 1rem; }
+.dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 360px; display: flex; flex-direction: column; gap: 1rem; max-height: 88vh; overflow-y: auto; }
 .dialog h2 { margin: 0; font-size: 1.05rem; color: var(--navy); }
 .dialog label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: #374151; }
 .dialog input, .dialog select, .dialog textarea { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
