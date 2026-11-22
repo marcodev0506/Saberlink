@@ -90,12 +90,12 @@ onMounted(cargar);
 
 <style scoped>
 .top { display: flex; justify-content: space-between; align-items: flex-start; }
-.back { color: var(--teal); font-size: .85rem; font-weight: 600; text-decoration: none; }
+.back { color: var(--navy); font-size: .85rem; font-weight: 600; text-decoration: none; }
 h1 { color: var(--navy); margin: .3rem 0 0; }
 .sub { color: #6b7280; font-size: .9rem; margin: .2rem 0 0; }
 .error { color: var(--danger); }
 .estado { font-size: .7rem; font-weight: 700; padding: .25rem .7rem; border-radius: 999px; background: var(--cream); color: #4b5563; text-transform: uppercase; }
-.estado.listo, .estado.publicado { background: #e0f2f5; color: var(--teal-dark); }
+.estado.listo, .estado.publicado { background: #dde6f0; color: var(--navy); }
 .estado.procesando { background: #fdeee3; color: var(--orange); }
 .empty { color: #9aa3b5; padding: 2rem 0; text-align: center; }
 

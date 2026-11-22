@@ -154,7 +154,7 @@ onMounted(cargar);
 .top { display: flex; justify-content: space-between; align-items: flex-start; }
 h1 { color: var(--navy); margin: 0; }
 .sub { color: #6b7280; font-size: .9rem; }
-.primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: var(--teal); color: #fff; font-weight: 700; cursor: pointer; }
+.primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
 .ghost { padding: .6rem 1.1rem; border: 1px solid #d4d9ea; border-radius: 9px; background: #fff; cursor: pointer; }
 .danger { background: #dc2626; }
 .actions { display: flex; gap: .5rem; }
@@ -179,7 +179,7 @@ h1 { color: var(--navy); margin: 0; }
 .body p { margin: .25rem 0; font-size: .72rem; color: #4b5563; text-transform: uppercase; }
 .fac { font-weight: 700; }
 .estado { position: absolute; top: .9rem; right: .9rem; font-size: .65rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; background: var(--cream); color: #4b5563; text-transform: uppercase; }
-.estado.listo, .estado.publicado { background: #e0f2f5; color: var(--teal-dark); }
+.estado.listo, .estado.publicado { background: #dde6f0; color: var(--navy); }
 .estado.procesando { background: #fdeee3; color: var(--orange); }
 .del { margin-top: .4rem; border: 0; background: var(--cream); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
 

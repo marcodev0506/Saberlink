@@ -41,14 +41,14 @@ ul { margin: 0; padding-left: 1.4rem; border-left: 1px dashed #d4d9ea; }
 .row:hover .actions { opacity: 1; }
 .toggle { border: 0; background: none; cursor: pointer; color: #6b7280; width: 1.2rem; }
 .spacer { display: inline-block; }
-.chip { background: #eef2ff; color: var(--teal); font-size: .7rem; font-weight: 700; padding: .1rem .55rem; border-radius: 999px; text-transform: uppercase; }
+.chip { background: #eef2ff; color: var(--navy); font-size: .7rem; font-weight: 700; padding: .1rem .55rem; border-radius: 999px; text-transform: uppercase; }
 .info { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
 .nombre { font-size: .95rem; color: var(--navy); font-weight: 600; }
 .desc { font-size: .78rem; color: #6b7280; }
 .tags { display: inline-flex; gap: .3rem; flex-wrap: wrap; }
 .tag { font-style: normal; font-size: .7rem; padding: .1rem .5rem; border-radius: 999px; font-weight: 600; }
 .comp { background: #fdeee3; color: var(--orange); }
-.hab { background: #e0f2f5; color: var(--teal-dark); }
+.hab { background: #dde6f0; color: var(--navy); }
 .actions { margin-left: auto; display: flex; gap: .25rem; opacity: 0; transition: opacity .15s; }
 .actions button { border: 0; background: var(--cream); border-radius: 6px; cursor: pointer; padding: .15rem .45rem; font-size: .85rem; }
 .actions button:hover { background: #dfe5f5; }

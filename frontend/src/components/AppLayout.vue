@@ -81,15 +81,15 @@ function logout() {
   color: #4b5563; text-decoration: none;
 }
 .nav-links a:hover { background: var(--cream); }
-.nav-links a.active { background: #e0f2f5; color: var(--teal); }
+.nav-links a.active { background: #dde6f0; color: var(--navy); }
 .user-box { display: flex; align-items: center; gap: .6rem; font-size: .85rem; }
 .empresa { color: #6b7280; }
-.chip { background: #e0f2f5; color: var(--teal); font-size: .7rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; text-transform: uppercase; }
+.chip { background: #dde6f0; color: var(--navy); font-size: .7rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; text-transform: uppercase; }
 .name { color: var(--navy); font-weight: 600; }
 .logout { border: 1px solid #d4d9ea; background: #fff; border-radius: 8px; padding: .35rem .8rem; cursor: pointer; font-size: .82rem; color: #4b5563; }
 .logout:hover { background: var(--cream); }
 .crumb { max-width: 860px; margin: 1.25rem auto 0; padding: 0 1rem; }
-.back { color: var(--teal); font-size: .85rem; font-weight: 600; text-decoration: none; }
+.back { color: var(--navy); font-size: .85rem; font-weight: 600; text-decoration: none; }
 .back:hover { text-decoration: underline; }
 .content { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
 </style>
