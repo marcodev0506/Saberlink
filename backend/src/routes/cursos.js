@@ -136,7 +136,7 @@ router.put('/:id', async (req, res) => {
        estado = COALESCE($7, estado)
      WHERE id = $1 AND empresa_id = $2 RETURNING id, titulo, objetivo, estado`,
     [req.params.id, req.user.empresa_id, titulo ?? null, objetivo ?? null,
-     facilitador_id ?? null, competencias != null ? JSON.stringify(competencias) : null, estado ?? null,
+     facilitador_id || null, competencias != null ? JSON.stringify(competencias) : null, estado ?? null,
      habilidades != null ? JSON.stringify(habilidades) : null]
   );
   if (!c) return res.status(404).json({ error: 'Curso no encontrado' });
