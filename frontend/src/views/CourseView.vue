@@ -11,7 +11,6 @@ const evaluaciones = ref([]);
 const error = ref('');
 const reproduciendo = ref(null);
 const generando = ref(null);
-const evalAbierta = ref(false);
 let audioEl = null;
 
 const token = localStorage.getItem('token');
@@ -83,16 +82,9 @@ onMounted(cargar);
       </p>
     </section>
 
-    <button v-if="evaluaciones.length" class="evalbtn" @click="evalAbierta = !evalAbierta">
-      {{ evalAbierta ? '▾ Ocultar evaluación' : '▸ Presentar evaluación' }}
+    <button v-if="evaluaciones.length" class="evalbtn" @click="$router.push(`/cursos/${route.params.id}/evaluacion`)">
+      ▸ Presentar evaluación
     </button>
-    <section v-if="evaluaciones.length && evalAbierta" class="evals">
-      <h2>Evaluación</h2>
-      <div v-for="(e, i) in evaluaciones" :key="i" class="eval">
-        <p><b>{{ i + 1 }}. {{ e.pregunta }}</b></p>
-        <label v-for="(op, j) in e.opciones" :key="j"><input type="radio" :name="`q${i}`" disabled /> {{ op }}</label>
-      </div>
-    </section>
   </AppLayout>
 </template>
 

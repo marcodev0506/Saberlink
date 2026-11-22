@@ -8,6 +8,7 @@ import UsersView from './views/UsersView.vue';
 import OrgView from './views/OrgView.vue';
 import CoursesView from './views/CoursesView.vue';
 import CourseView from './views/CourseView.vue';
+import EvalView from './views/EvalView.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -20,6 +21,7 @@ const router = createRouter({
     { path: '/estructura', component: OrgView, meta: { auth: true } },
     { path: '/cursos', component: CoursesView, meta: { auth: true } },
     { path: '/cursos/:id', component: CourseView, meta: { auth: true } },
+    { path: '/cursos/:id/evaluacion', component: EvalView, meta: { auth: true } },
   ],
 });
 
