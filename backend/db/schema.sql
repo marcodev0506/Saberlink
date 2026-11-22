@@ -101,3 +101,5 @@ CREATE TABLE IF NOT EXISTS catalogo (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (empresa_id, tipo, nombre)
 );
+
+ALTER TABLE cursos ADD COLUMN IF NOT EXISTS duracion TEXT NOT NULL DEFAULT '';

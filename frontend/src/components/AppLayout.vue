@@ -25,7 +25,7 @@ const links = computed(() => {
     l.push({ to: '/usuarios', label: 'Usuarios' });
     l.push({ to: '/estructura', label: 'Estructura' });
   }
-  l.push({ to: '/cursos', label: 'Cursos' });
+  l.push({ to: '/cursos', label: 'Cursos', hijos: [{ to: '/cursos', label: 'Todos los cursos' }, { to: '/catalogo', label: 'Catálogo' }] });
   return l;
 });
 
@@ -43,9 +43,17 @@ function logout() {
     <nav class="topbar">
       <router-link to="/inicio" class="brand">Saber<span>link</span></router-link>
       <div class="nav-links">
-        <router-link v-for="l in links" :key="l.to" :to="l.to" :class="{ active: route.path === l.to }">
-          {{ l.label }}
-        </router-link>
+        <template v-for="l in links" :key="l.to">
+          <div v-if="l.hijos" class="menu">
+            <router-link :to="l.to" :class="{ active: route.path === l.to }">{{ l.label }} ▾</router-link>
+            <div class="submenu">
+              <router-link v-for="h in l.hijos" :key="h.to" :to="h.to" :class="{ active: route.path === h.to }">{{ h.label }}</router-link>
+            </div>
+          </div>
+          <router-link v-else :to="l.to" :class="{ active: route.path === l.to }">
+            {{ l.label }}
+          </router-link>
+        </template>
       </div>
       <div class="user-box" v-if="user">
         <span class="empresa">{{ empresa }}</span>
@@ -81,6 +89,10 @@ function logout() {
   color: #4b5563; text-decoration: none;
 }
 .nav-links a:hover { background: var(--cream); }
+.menu { position: relative; }
+.submenu { display: none; position: absolute; top: 100%; left: 0; min-width: 160px; background: #fff; border: 1px solid #e2e6f0; border-radius: 10px; padding: .4rem; box-shadow: 0 8px 24px rgba(15,30,80,.14); z-index: 60; flex-direction: column; }
+.menu:hover .submenu, .menu:focus-within .submenu { display: flex; }
+.submenu a { padding: .45rem .8rem !important; font-size: .82rem !important; }
 .nav-links a.active { background: #dde6f0; color: var(--navy); }
 .user-box { display: flex; align-items: center; gap: .6rem; font-size: .85rem; }
 .empresa { color: #6b7280; }

@@ -13,7 +13,7 @@ const modal = ref(false);
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 const puedeCrear = user.rol === 'rrhh' || user.rol === 'gestor_curso';
 
-const f = ref({ titulo: '', objetivo: '', facilitador_id: '' });
+const f = ref({ titulo: '', objetivo: '', duracion: '', facilitador_id: '' });
 const tags = ref({ competencias: [], habilidades: [] });
 const pdfFile = ref(null);
 const imgFile = ref(null);
@@ -52,7 +52,7 @@ function fileToB64(file) {
 
 function editar(c) {
   editando.value = c.id;
-  f.value = { titulo: c.titulo, objetivo: c.objetivo, facilitador_id: '' };
+  f.value = { titulo: c.titulo, objetivo: c.objetivo, duracion: c.duracion ?? '', facilitador_id: '' };
   tags.value = { competencias: [...(c.competencias || [])], habilidades: [...(c.habilidades || [])] };
   modal.value = true;
 }
@@ -71,7 +71,7 @@ async function guardar() {
     }
     modal.value = false;
     editando.value = null;
-    f.value = { titulo: '', objetivo: '', facilitador_id: '' };
+    f.value = { titulo: '', objetivo: '', duracion: '', facilitador_id: '' };
     tags.value = { competencias: [], habilidades: [] };
     pdfFile.value = null;
     imgFile.value = null;
@@ -139,6 +139,7 @@ onMounted(cargar);
         <label>Imagen del curso <input type="file" accept="image/*" @change="onImg" /></label>
         <label>Título <input v-model="f.titulo" placeholder="Inducción de seguridad" /></label>
         <label>Objetivo general <textarea v-model="f.objetivo" rows="2" /></label>
+        <label>Duración <input v-model="f.duracion" placeholder="Ej. 2 horas" /></label>
         <div class="tagfield" v-for="campo in ['habilidades','competencias']" :key="campo">
           <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }} <span class="hint">(del banco central)</span></label>
           <TagSelect :tipo="campo === 'competencias' ? 'competencia' : 'habilidad'" v-model="tags[campo]" />

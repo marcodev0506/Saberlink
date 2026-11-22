@@ -12,7 +12,7 @@ const puedeEditar = (rol) => rol === 'rrhh' || rol === 'gestor_curso';
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
     `SELECT c.id, c.titulo, c.objetivo, c.estado, c.competencias, c.habilidades, c.audio_path,
-            c.imagen_path, c.facilitador_id, u.nombre AS facilitador
+            c.imagen_path, c.duracion, c.facilitador_id, u.nombre AS facilitador
      FROM cursos c LEFT JOIN usuarios u ON u.id = c.facilitador_id
      WHERE c.empresa_id = $1 ORDER BY c.created_at DESC`, [req.user.empresa_id]
   );
@@ -81,7 +81,7 @@ router.get('/:id/audio/:leccionId', async (req, res) => {
 
 router.post('/', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
-  const { titulo, objetivo, facilitador_id, competencias, habilidades, archivo_base64, archivo_nombre, imagen_base64, imagen_nombre } = req.body ?? {};
+  const { titulo, objetivo, duracion, facilitador_id, competencias, habilidades, archivo_base64, archivo_nombre, imagen_base64, imagen_nombre } = req.body ?? {};
   if (!titulo?.trim()) return res.status(400).json({ error: 'Falta el título' });
   if (facilitador_id) {
     const { rows: [fac] } = await pool.query(
@@ -92,11 +92,11 @@ router.post('/', async (req, res) => {
   }
 
   const { rows: [c] } = await pool.query(
-    `INSERT INTO cursos (empresa_id, titulo, objetivo, facilitador_id, competencias, habilidades)
-     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)
+    `INSERT INTO cursos (empresa_id, titulo, objetivo, facilitador_id, competencias, habilidades, duracion)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7)
      RETURNING id, titulo, objetivo, estado`,
     [req.user.empresa_id, titulo.trim(), objetivo ?? '', facilitador_id || null,
-     JSON.stringify(competencias ?? []), JSON.stringify(habilidades ?? [])]
+     JSON.stringify(competencias ?? []), JSON.stringify(habilidades ?? []), duracion ?? '']
   );
 
   if (archivo_base64) {
@@ -125,7 +125,7 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
-  const { titulo, objetivo, facilitador_id, competencias, habilidades, estado, imagen_base64, imagen_nombre, archivo_base64, archivo_nombre } = req.body ?? {};
+  const { titulo, objetivo, duracion, facilitador_id, competencias, habilidades, estado, imagen_base64, imagen_nombre, archivo_base64, archivo_nombre } = req.body ?? {};
   const { rows: [c] } = await pool.query(
     `UPDATE cursos SET
        titulo = COALESCE($3, titulo),
@@ -133,11 +133,12 @@ router.put('/:id', async (req, res) => {
        facilitador_id = COALESCE($5, facilitador_id),
        competencias = COALESCE($6, competencias),
        habilidades = COALESCE($8, habilidades),
-       estado = COALESCE($7, estado)
+       estado = COALESCE($7, estado),
+       duracion = COALESCE($9, duracion)
      WHERE id = $1 AND empresa_id = $2 RETURNING id, titulo, objetivo, estado`,
     [req.params.id, req.user.empresa_id, titulo ?? null, objetivo ?? null,
      facilitador_id || null, competencias != null ? JSON.stringify(competencias) : null, estado ?? null,
-     habilidades != null ? JSON.stringify(habilidades) : null]
+     habilidades != null ? JSON.stringify(habilidades) : null, duracion ?? null]
   );
   if (!c) return res.status(404).json({ error: 'Curso no encontrado' });
   if (archivo_base64) {
