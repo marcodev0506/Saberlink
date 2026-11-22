@@ -21,6 +21,10 @@ function addTag(campo) {
   tagDraft.value[campo] = '';
 }
 function delTag(campo, i) { p.value[campo].splice(i, 1); }
+
+function fmtCi(e) {
+  f.value.ci = 'V-' + e.target.value.replace(/[^0-9]/g, '');
+}
 const niveles = computed(() => [...new Set(flat.value.map((u) => u.tipo))]);
 const porNivel = (nivel) => flat.value.filter((u) => u.tipo === nivel);
 
@@ -170,7 +174,7 @@ onMounted(cargar);
           <h2>{{ modal.node ? 'Editar puesto' : `Nuevo puesto en "${modal.nivel}"` }}</h2>
           <label>Cargo <input v-model="f.cargo" placeholder="Gerente de Operaciones" /></label>
           <label>Nombre y Apellido <input v-model="f.nombre_apellido" /></label>
-          <label>CI <input v-model="f.ci" placeholder="V-12345678" /></label>
+          <label>CI <input :value="f.ci" @input="fmtCi" placeholder="V-12345678" inputmode="numeric" /></label>
           <label>Correo <input v-model="f.correo" type="email" /></label>
         </template>
         <template v-else>
