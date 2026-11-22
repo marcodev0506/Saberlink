@@ -61,6 +61,7 @@ services:
       CHOKIDAR_USEPOLLING: "true"   # necesario en Windows: los eventos de archivos no cruzan el bind mount
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
     depends_on:
       - api
 

@@ -37,7 +37,7 @@ async function guardar() {
         pdf_base64 += String.fromCharCode(...buf.subarray(i, i + 32768));
       pdf_base64 = btoa(pdf_base64);
     }
-    await post('/api/cursos', { ...f.value, pdf_base64 });
+    await post('/api/cursos', { ...f.value, archivo_base64: pdf_base64, archivo_nombre: pdfFile.value?.name });
     modal.value = false;
     f.value = { titulo: '', objetivo: '', facilitador_id: '' };
     pdfFile.value = null;
@@ -87,6 +87,7 @@ onMounted(cargar);
         <p class="sub">El experto sube el PDF; la IA genera el guion, las evaluaciones y el audio con ElevenLabs.</p>
       </div>
       <div class="actions">
+        <a class="ghost link" href="/plantilla_unidad.docx" download>📄 Plantilla</a>
         <button class="ghost" @click="probarVoz" :disabled="probando">{{ probando ? 'Generando…' : '🔊 Probar voz' }}</button>
         <button v-if="puedeCrear" class="primary" @click="modal = true">+ Curso</button>
       </div>
@@ -118,7 +119,7 @@ onMounted(cargar);
             <option v-for="e in expertos" :key="e.id" :value="e.id">{{ e.nombre }}</option>
           </select>
         </label>
-        <label>PDF del contenido <input type="file" accept="application/pdf" @change="onFile" /></label>
+        <label>Contenido (PDF o plantilla DOCX) <input type="file" accept=".pdf,.docx" @change="onFile" /></label>
         <div class="dialog-actions">
           <button class="ghost" @click="modal = false">Cancelar</button>
           <button class="primary" :disabled="guardando" @click="guardar">{{ guardando ? 'Guardando…' : 'Guardar' }}</button>
@@ -147,6 +148,7 @@ h1 { color: #14204a; margin: 0; }
 .ghost { padding: .6rem 1.1rem; border: 1px solid #d4d9ea; border-radius: 9px; background: #fff; cursor: pointer; }
 .danger { background: #dc2626; }
 .actions { display: flex; gap: .5rem; }
+.link { text-decoration: none; color: #4b5563; font-size: .82rem; display: inline-flex; align-items: center; }
 .error { color: #b42318; }
 .empty { color: #9aa3b5; padding: 3rem 0; text-align: center; }
 .confirmtxt { color: #6b7280; font-size: .85rem; margin: 0; }

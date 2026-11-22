@@ -46,7 +46,7 @@ router.get('/:id/audio/:leccionId', async (req, res) => {
 
 router.post('/', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Experto' });
-  const { titulo, objetivo, facilitador_id, competencias, pdf_base64, pdf_nombre } = req.body ?? {};
+  const { titulo, objetivo, facilitador_id, competencias, archivo_base64, archivo_nombre } = req.body ?? {};
   if (!titulo?.trim()) return res.status(400).json({ error: 'Falta el título' });
   if (facilitador_id) {
     const { rows: [fac] } = await pool.query(
@@ -64,11 +64,13 @@ router.post('/', async (req, res) => {
      JSON.stringify(competencias ?? [])]
   );
 
-  if (pdf_base64) {
-    const dir = `${process.env.STORAGE_DIR}/pdfs`;
+  if (archivo_base64) {
+    const ext = (archivo_nombre || 'documento.pdf').split('.').pop().toLowerCase();
+    if (!['pdf', 'docx'].includes(ext)) return res.status(400).json({ error: 'Solo PDF o DOCX' });
+    const dir = `${process.env.STORAGE_DIR}/docs`;
     await mkdir(dir, { recursive: true });
-    const path = `${dir}/${c.id}.pdf`;
-    const clean = pdf_base64.replace(/^data:.*;base64,/, '');
+    const path = `${dir}/${c.id}.${ext}`;
+    const clean = archivo_base64.replace(/^data:.*;base64,/, '');
     await writeFile(path, Buffer.from(clean, 'base64'));
     await pool.query("UPDATE cursos SET pdf_path = $1, estado = 'procesando' WHERE id = $2", [path, c.id]);
     await publish('ia.jobs', { type: 'guion', payload: { curso_id: c.id, pdf_path: path, empresa_id: req.user.empresa_id } });

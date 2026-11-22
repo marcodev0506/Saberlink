@@ -1,6 +1,7 @@
 import amqp from 'amqplib';
 import pg from 'pg';
 import { readFile } from 'fs/promises';
+import AdmZip from 'adm-zip';
 
 const QUEUE = 'ia.jobs';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://ollama:11434';
@@ -42,9 +43,23 @@ function parseJsonSecciones(text) {
   return { secciones, evaluaciones: Array.isArray(j.evaluaciones) ? j.evaluaciones : [] };
 }
 
+function extractDocxText(buffer) {
+  const zip = new AdmZip(buffer);
+  const xml = zip.readAsText('word/document.xml');
+  return xml
+    .replace(/<w:p[ >]/g, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/\[([^\]]*)\]/g, '')          // quita campos sin rellenar […]
+    .replace(/\n{2,}/g, '\n')
+    .slice(0, 15000);
+}
+
 async function procesarCurso({ curso_id, pdf_path }) {
   const buf = await readFile(pdf_path);
-  const texto = extractPdfText(buf) || 'PDF sin texto extraíble';
+  const texto = pdf_path.endsWith('.docx')
+    ? extractDocxText(buf)
+    : (extractPdfText(buf) || 'PDF sin texto extraíble');
   const out = await callOllama(
     `Eres un diseñador instruccional. Divide este contenido de curso en unidades o temas. ` +
     `Responde SOLO con JSON {"secciones": [{"titulo": "Unidad 1: ...", "texto": "guion narrado de la unidad"}], ` +
