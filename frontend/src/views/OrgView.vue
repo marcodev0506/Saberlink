@@ -12,9 +12,15 @@ const esRrhh = user.rol === 'rrhh';
 // formulario tarjeta (puesto/persona)
 const f = ref({ nombre: '', cargo: '', nombre_apellido: '', ci: '', correo: '' });
 // formulario perfil (botón +)
-const p = ref({ descripcion: '', competencias: '', habilidades: '' });
+const p = ref({ descripcion: '', competencias: [], habilidades: [] });
+const tagDraft = ref({ competencias: '', habilidades: '' });
 
-const toLista = (txt) => txt.split(',').map((s) => s.trim()).filter(Boolean);
+function addTag(campo) {
+  const t = tagDraft.value[campo].trim();
+  if (t && !p.value[campo].includes(t)) p.value[campo].push(t);
+  tagDraft.value[campo] = '';
+}
+function delTag(campo, i) { p.value[campo].splice(i, 1); }
 const niveles = computed(() => [...new Set(flat.value.map((u) => u.tipo))]);
 const porNivel = (nivel) => flat.value.filter((u) => u.tipo === nivel);
 
@@ -39,9 +45,10 @@ function abrirPerfil(node) {
   modal.value = { mode: 'perfil', node };
   p.value = {
     descripcion: node.descripcion || '',
-    competencias: (node.competencias || []).join(', '),
-    habilidades: (node.habilidades || []).join(', '),
+    competencias: [...(node.competencias || [])],
+    habilidades: [...(node.habilidades || [])],
   };
+  tagDraft.value = { competencias: '', habilidades: '' };
 }
 
 async function guardar() {
@@ -54,8 +61,8 @@ async function guardar() {
     } else {
       await put(`/api/unidades/${modal.value.node.id}`, {
         descripcion: p.value.descripcion,
-        competencias: toLista(p.value.competencias),
-        habilidades: toLista(p.value.habilidades),
+        competencias: p.value.competencias,
+        habilidades: p.value.habilidades,
       });
     }
     modal.value = null;
@@ -152,9 +159,17 @@ onMounted(cargar);
         <template v-else>
           <h2>Perfil de "{{ modal.node.cargo || modal.node.nombre }}"</h2>
           <label>Descripción del puesto <textarea v-model="p.descripcion" rows="3" placeholder="Funciones y alcance" /></label>
-          <label>Competencias <span class="hint">(coma — enlazan a cursos)</span>
-            <input v-model="p.competencias" placeholder="Liderazgo, Seguridad" /></label>
-          <label>Habilidades <input v-model="p.habilidades" placeholder="Excel, Gestión de equipos" /></label>
+          <div class="tagfield" v-for="campo in ['competencias','habilidades']" :key="campo">
+            <label>{{ campo === 'competencias' ? 'Competencias' : 'Habilidades' }}
+              <span class="hint">(Enter para agregar — enlazan a cursos)</span></label>
+            <div class="chips">
+              <em v-for="(t, i) in p[campo]" :key="t" class="tag"
+                  :class="campo === 'competencias' ? 'comp' : 'hab'"
+                  @click="delTag(campo, i)">{{ t }} ×</em>
+              <input v-model="tagDraft[campo]" @keydown.enter.prevent="addTag(campo)"
+                     @keydown.tab="addTag(campo)" placeholder="Escribe y presiona Enter" />
+            </div>
+          </div>
         </template>
         <div class="dialog-actions">
           <button class="ghost" @click="modal = null">Cancelar</button>
@@ -205,4 +220,8 @@ h1 { color: #14204a; margin: 0; }
 .dialog input, .dialog select, .dialog textarea { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }
 .hint { font-weight: 400; color: #9aa3b5; }
+.tagfield label { font-size: .8rem; font-weight: 600; color: #374151; display: block; margin-bottom: .35rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .3rem; border: 1.5px solid #e2e6f0; border-radius: 8px; padding: .45rem; }
+.chips input { flex: 1; min-width: 110px; border: 0; outline: none; font-family: inherit; font-size: .85rem; }
+.chips .tag { cursor: pointer; }
 </style>
