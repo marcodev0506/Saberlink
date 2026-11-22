@@ -181,7 +181,8 @@ h1 { color: var(--navy); margin: 0; }
 .error { color: var(--danger); }
 .empty { color: #9aa3b5; font-size: .85rem; padding: .6rem 0; }
 .big { text-align: center; padding: 3rem 0; }
-.tree { list-style: none; padding: 0; margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; }
+.tree { list-style: none; padding: 0; margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: center; }
+.tree > li { display: flex; flex-direction: column; align-items: center; }
 
 .overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 360px; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; }

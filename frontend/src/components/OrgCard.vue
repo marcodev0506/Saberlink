@@ -45,7 +45,21 @@ const emit = defineEmits(['toggle', 'drop', 'perfil', 'editar', 'hijo', 'borrar'
 </template>
 
 <style scoped>
-.children { list-style: none; padding-left: 1.2rem; margin: .6rem 0 0; border-left: 2px solid #c9d2e8; display: flex; flex-direction: column; gap: .6rem; }
+/* Organigrama: hijos en fila horizontal, conectados por líneas de rama */
+.children { list-style: none; padding: 0; margin: 2rem 0 0; display: flex; gap: 1.2rem; position: relative; }
+.children::before { /* tallo vertical desde el padre hasta la barra horizontal */
+  content: ''; position: absolute; top: -2rem; left: 50%; width: 2px; height: 2rem; background: #c9d2e8;
+}
+.children > li { position: relative; padding-top: 1.2rem; display: flex; flex-direction: column; align-items: center; }
+.children > li::before { /* línea vertical desde la barra horizontal al hijo */
+  content: ''; position: absolute; top: 0; left: 50%; width: 2px; height: 1.2rem; background: #c9d2e8;
+}
+.children > li::after { /* línea horizontal que une hermanos */
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #c9d2e8;
+}
+.children > li:first-child::after { left: 50%; }
+.children > li:last-child::after { right: 50%; }
+.children > li:only-child::after { left: 50%; right: 50%; }
 .post {
   background: #fff; border-radius: 14px; padding: 1rem 1.1rem; min-width: 200px; max-width: 280px;
   box-shadow: 0 4px 16px rgba(15,30,80,.1); cursor: grab; display: flex; flex-direction: column; gap: .25rem;
