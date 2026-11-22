@@ -91,6 +91,17 @@ function onDrop(nivel) {
   put(`/api/unidades/${node.id}`, { tipo: nivel }).then(cargar).catch((e) => (error.value = e.message));
 }
 
+async function renombrarNivel(nivel) {
+  const nuevo = prompt(`Renombrar nivel "${nivel}" a:`, nivel);
+  if (!nuevo?.trim() || nuevo.trim() === nivel) return;
+  try {
+    await Promise.all(porNivel(nivel).map((u) => put(`/api/unidades/${u.id}`, { tipo: nuevo.trim().toLowerCase() })));
+    await cargar();
+  } catch (err) {
+    error.value = err.message;
+  }
+}
+
 async function nuevoNivel() {
   const nivel = prompt('Nombre del nuevo nivel (ej: Gerentes, Analistas, Supervisores)');
   if (!nivel?.trim()) return;
@@ -119,7 +130,9 @@ onMounted(cargar);
     <section v-for="nivel in niveles" :key="nivel" class="board-row"
              @dragover.prevent @drop="onDrop(nivel)">
       <div class="row-head">
-        <h2>{{ nivel }}</h2>
+        <h2>{{ nivel }}
+          <button v-if="esRrhh" class="edit-lvl" title="Renombrar nivel" @click="renombrarNivel(nivel)">✎</button>
+        </h2>
         <button v-if="esRrhh" class="add" @click="abrirCard(nivel)">Agregar</button>
       </div>
       <div class="cards">
@@ -197,6 +210,8 @@ h1 { color: #14204a; margin: 0; }
 .board-row { margin-top: 1.5rem; }
 .row-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #c9d2e8; padding-bottom: .4rem; }
 .row-head h2 { margin: 0; font-size: 1rem; color: #14204a; text-transform: capitalize; }
+.edit-lvl { border: 0; background: none; color: #9aa3b5; cursor: pointer; font-size: .85rem; }
+.edit-lvl:hover { color: #3d5bf0; }
 .add { padding: .4rem 1.2rem; border: 0; border-radius: 999px; background: #3d5bf0; color: #fff; font-weight: 700; font-size: .85rem; cursor: pointer; }
 
 .cards { display: flex; flex-wrap: wrap; gap: .9rem; padding: .9rem 0; }
