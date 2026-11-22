@@ -11,6 +11,7 @@ const evaluaciones = ref([]);
 const error = ref('');
 const reproduciendo = ref(null);
 const generando = ref(null);
+const evalAbierta = ref(false);
 let audioEl = null;
 
 const token = localStorage.getItem('token');
@@ -82,7 +83,10 @@ onMounted(cargar);
       </p>
     </section>
 
-    <section v-if="evaluaciones.length" class="evals">
+    <button v-if="evaluaciones.length" class="evalbtn" @click="evalAbierta = !evalAbierta">
+      {{ evalAbierta ? '▾ Ocultar evaluación' : '▸ Presentar evaluación' }}
+    </button>
+    <section v-if="evaluaciones.length && evalAbierta" class="evals">
       <h2>Evaluación</h2>
       <div v-for="(e, i) in evaluaciones" :key="i" class="eval">
         <p><b>{{ i + 1 }}. {{ e.pregunta }}</b></p>
@@ -110,7 +114,8 @@ h1 { color: #14204a; margin: .3rem 0 0; }
 .unidad p { color: #4b5563; font-size: .85rem; line-height: 1.5; }
 .play { border: 0; background: #3d5bf0; color: #fff; padding: .45rem 1.1rem; border-radius: 999px; font-weight: 700; font-size: .82rem; cursor: pointer; }
 
-.evals { margin-top: 2rem; }
+.evalbtn { margin-top: 1.6rem; border: 0; background: #14204a; color: #fff; padding: .7rem 1.4rem; border-radius: 999px; font-weight: 700; font-size: .9rem; cursor: pointer; }
+.evals { margin-top: 1.2rem; }
 .evals h2 { color: #14204a; font-size: 1.05rem; }
 .eval { background: #fff; border-radius: 12px; padding: 1rem 1.2rem; margin-top: .7rem; box-shadow: 0 3px 12px rgba(15,30,80,.08); }
 .eval p { margin: 0 0 .5rem; font-size: .9rem; }
