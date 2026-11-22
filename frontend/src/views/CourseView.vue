@@ -61,7 +61,7 @@ onMounted(cargar);
       <div>
         <router-link to="/cursos" class="back">← Cursos</router-link>
         <h1>{{ curso.titulo }}</h1>
-        <p class="sub">{{ curso.objetivo }} · Facilitador: {{ curso.facilitador || '—' }}</p>
+        <p class="sub">{{ curso.objetivo }}</p>
       </div>
       <span class="estado" :class="curso.estado">{{ curso.estado }}</span>
     </header>
