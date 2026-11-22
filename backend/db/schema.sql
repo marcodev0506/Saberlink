@@ -25,9 +25,16 @@ CREATE TABLE IF NOT EXISTS unidades (
   parent_id     UUID REFERENCES unidades(id) ON DELETE CASCADE,
   nombre        TEXT NOT NULL,
   tipo          TEXT NOT NULL DEFAULT 'unidad',   -- gerencia, departamento, dirección… lo define la empresa
+  descripcion   TEXT NOT NULL DEFAULT '',          -- descripción del puesto/función
+  competencias  JSONB NOT NULL DEFAULT '[]'::jsonb, -- lista de competencias (se enlazan a cursos)
+  habilidades   JSONB NOT NULL DEFAULT '[]'::jsonb, -- lista de habilidades
   orden         INT NOT NULL DEFAULT 0,
   metadata      JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE unidades ADD COLUMN IF NOT EXISTS descripcion  TEXT NOT NULL DEFAULT '';
+ALTER TABLE unidades ADD COLUMN IF NOT EXISTS competencias JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE unidades ADD COLUMN IF NOT EXISTS habilidades  JSONB NOT NULL DEFAULT '[]'::jsonb;
 CREATE INDEX IF NOT EXISTS unidades_empresa_idx ON unidades(empresa_id, parent_id);
 

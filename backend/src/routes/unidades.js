@@ -13,7 +13,7 @@ function requireRrhh(req, res, next) {
 // Devuelve el árbol completo de la empresa
 router.get('/', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, parent_id, nombre, tipo, orden, metadata FROM unidades
+    `SELECT id, parent_id, nombre, tipo, descripcion, competencias, habilidades, orden, metadata FROM unidades
      WHERE empresa_id = $1 ORDER BY orden, nombre`, [req.user.empresa_id]
   );
   const byParent = new Map();
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', requireRrhh, async (req, res) => {
-  const { nombre, tipo, parent_id, orden, metadata } = req.body ?? {};
+  const { nombre, tipo, parent_id, descripcion, competencias, habilidades, orden, metadata } = req.body ?? {};
   if (!nombre?.trim()) return res.status(400).json({ error: 'Falta el nombre' });
   if (parent_id) {
     const { rows: [parent] } = await pool.query(
@@ -36,25 +36,31 @@ router.post('/', requireRrhh, async (req, res) => {
     if (!parent) return res.status(404).json({ error: 'Unidad padre no encontrada' });
   }
   const { rows: [u] } = await pool.query(
-    `INSERT INTO unidades (empresa_id, parent_id, nombre, tipo, orden, metadata)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING id, parent_id, nombre, tipo, orden, metadata`,
-    [req.user.empresa_id, parent_id || null, nombre.trim(), tipo?.trim() || 'unidad', orden ?? 0, metadata ?? {}]
+    `INSERT INTO unidades (empresa_id, parent_id, nombre, tipo, descripcion, competencias, habilidades, orden, metadata)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING id, parent_id, nombre, tipo, descripcion, competencias, habilidades, orden, metadata`,
+    [req.user.empresa_id, parent_id || null, nombre.trim(), tipo?.trim() || 'unidad',
+     descripcion ?? '', JSON.stringify(competencias ?? []), JSON.stringify(habilidades ?? []), orden ?? 0, JSON.stringify(metadata ?? {})]
   );
   res.status(201).json({ unidad: u });
 });
 
 router.put('/:id', requireRrhh, async (req, res) => {
-  const { nombre, tipo, orden, metadata } = req.body ?? {};
+  const { nombre, tipo, descripcion, competencias, habilidades, orden, metadata } = req.body ?? {};
   const { rows: [u] } = await pool.query(
     `UPDATE unidades SET
-       nombre   = COALESCE($3, nombre),
-       tipo     = COALESCE($4, tipo),
-       orden    = COALESCE($5, orden),
-       metadata = COALESCE($6, metadata)
+       nombre      = COALESCE($3, nombre),
+       tipo        = COALESCE($4, tipo),
+       descripcion = COALESCE($5, descripcion),
+       competencias= COALESCE($6, competencias),
+       habilidades = COALESCE($7, habilidades),
+       orden       = COALESCE($8, orden),
+       metadata    = COALESCE($9, metadata)
      WHERE id = $1 AND empresa_id = $2
-     RETURNING id, parent_id, nombre, tipo, orden, metadata`,
-    [req.params.id, req.user.empresa_id, nombre?.trim() ?? null, tipo?.trim() ?? null, orden ?? null, metadata ?? null]
+     RETURNING id, parent_id, nombre, tipo, descripcion, competencias, habilidades, orden, metadata`,
+    [req.params.id, req.user.empresa_id, nombre?.trim() ?? null, tipo?.trim() ?? null,
+     descripcion ?? null, competencias != null ? JSON.stringify(competencias) : null,
+     habilidades != null ? JSON.stringify(habilidades) : null, orden ?? null, metadata != null ? JSON.stringify(metadata) : null]
   );
   if (!u) return res.status(404).json({ error: 'Unidad no encontrada' });
   res.json({ unidad: u });

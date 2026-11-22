@@ -9,6 +9,11 @@ const error = ref('');
 const modal = ref(null);   // { mode: 'add'|'edit', parent?, node? }
 const nombre = ref('');
 const tipo = ref('gerencia');
+const descripcion = ref('');
+const competencias = ref('');   // texto separado por comas
+const habilidades = ref('');
+
+const toLista = (txt) => txt.split(',').map((s) => s.trim()).filter(Boolean);
 const tipos = ['gerencia', 'departamento', 'dirección', 'coordinación', 'unidad'];
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 const esRrhh = user.rol === 'rrhh';
@@ -22,21 +27,34 @@ function abrirAdd(parent = null) {
   modal.value = { mode: 'add', parent };
   nombre.value = '';
   tipo.value = 'gerencia';
+  descripcion.value = '';
+  competencias.value = '';
+  habilidades.value = '';
 }
 
 function abrirEdit(node) {
   modal.value = { mode: 'edit', node };
   nombre.value = node.nombre;
   tipo.value = node.tipo;
+  descripcion.value = node.descripcion || '';
+  competencias.value = (node.competencias || []).join(', ');
+  habilidades.value = (node.habilidades || []).join(', ');
 }
 
 async function guardar() {
   error.value = '';
   try {
+    const payload = {
+      nombre: nombre.value,
+      tipo: tipo.value,
+      descripcion: descripcion.value,
+      competencias: toLista(competencias.value),
+      habilidades: toLista(habilidades.value),
+    };
     if (modal.value.mode === 'add') {
-      await post('/api/unidades', { nombre: nombre.value, tipo: tipo.value, parent_id: modal.value.parent?.id ?? null });
+      await post('/api/unidades', { ...payload, parent_id: modal.value.parent?.id ?? null });
     } else {
-      await put(`/api/unidades/${modal.value.node.id}`, { nombre: nombre.value, tipo: tipo.value });
+      await put(`/api/unidades/${modal.value.node.id}`, payload);
     }
     modal.value = null;
     await cargar();
@@ -85,6 +103,15 @@ onMounted(cargar);
             <option v-for="t in tipos" :key="t" :value="t">{{ t }}</option>
           </select>
         </label>
+        <label>Descripción del puesto
+          <textarea v-model="descripcion" rows="3" placeholder="Funciones y alcance del cargo" />
+        </label>
+        <label>Competencias <span class="hint">(separadas por coma — se enlazan a cursos)</span>
+          <input v-model="competencias" placeholder="Liderazgo, Seguridad industrial" />
+        </label>
+        <label>Habilidades
+          <input v-model="habilidades" placeholder="Excel, Gestión de equipos" />
+        </label>
         <div class="dialog-actions">
           <button class="ghost" @click="modal = null">Cancelar</button>
           <button class="primary" @click="guardar">Guardar</button>
@@ -108,6 +135,8 @@ h1 { color: #14204a; margin: 0; }
 .dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 340px; display: flex; flex-direction: column; gap: 1rem; }
 .dialog h2 { margin: 0; font-size: 1.05rem; color: #14204a; }
 .dialog label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; font-weight: 600; color: #374151; }
-.dialog input, .dialog select { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; }
+.dialog input, .dialog select, .dialog textarea { padding: .55rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
+.dialog { max-height: 90vh; overflow-y: auto; }
+.hint { font-weight: 400; color: #9aa3b5; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; }
 </style>
