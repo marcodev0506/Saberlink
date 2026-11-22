@@ -26,26 +26,31 @@ onMounted(async () => {
 
         <div class="bloques">
           <router-link v-if="user.rol === 'rrhh'" to="/estructura" class="bloque" style="animation-delay:.05s">
+            <img class="ico" src="/icons/estructura.png" alt="" />
             <b>Estructura</b>
             <span>organizacional</span>
             <p>Árbol de gerencias, departamentos y cargos editable.</p>
           </router-link>
           <router-link to="/cursos" class="bloque" style="animation-delay:.15s">
+            <img class="ico" src="/icons/cursos.png" alt="" />
             <b>Cursos</b>
             <span>catálogo y estudio</span>
             <p>La IA genera guion, unidades, evaluaciones y audio.</p>
           </router-link>
           <router-link v-if="user.rol === 'rrhh'" to="/usuarios" class="bloque" style="animation-delay:.25s">
+            <img class="ico" src="/icons/usuarios.png" alt="" />
             <b>Usuarios</b>
             <span>equipo</span>
             <p>Invita trabajadores y gestores con sus roles.</p>
           </router-link>
           <router-link to="/certificados" class="bloque" style="animation-delay:.35s">
+            <img class="ico" src="/icons/certificados.png" alt="" />
             <b>Certificados</b>
             <span>acreditación</span>
             <p>PDF con QR único, verificable públicamente.</p>
           </router-link>
           <router-link v-if="user.rol !== 'trabajador'" to="/evaluaciones" class="bloque" style="animation-delay:.45s">
+            <img class="ico" src="/icons/usuarios.png" alt="" />
             <b>Reportes</b>
             <span>evaluaciones</span>
             <p>Resultados diagnósticos, teóricos y prácticos por estudiante y por curso.</p>
@@ -75,6 +80,7 @@ onMounted(async () => {
   transition: transform .18s cubic-bezier(.34,1.4,.64,1), box-shadow .15s;
   animation: card-pop .5s cubic-bezier(.34,1.35,.64,1) both;
 }
+.ico { width: 56px; height: 56px; object-fit: contain; margin-bottom: auto; opacity: .95; }
 .bloque b { font-size: 1.8rem; line-height: 1.05; }
 .bloque span { font-size: .95rem; font-weight: 600; opacity: .9; }
 .bloque p { margin: .7rem 0 0; font-size: .82rem; line-height: 1.45; opacity: .92; }
