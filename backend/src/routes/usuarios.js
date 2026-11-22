@@ -57,7 +57,7 @@ router.post('/importar', requireRrhh, async (req, res) => {
     return res.status(400).json({ error: 'No se pudo leer el Excel' });
   }
   const hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
-  let creados = 0, omitidos = 0;
+  let creados = 0, omitidos = 0, rehabilitados = 0;
   const errores = [];
   for (const [i, r] of rows.entries()) {
     const nombre = String(r.nombre ?? r.Nombre ?? r.NOMBRE ?? '').trim();
@@ -73,11 +73,14 @@ router.post('/importar', requireRrhh, async (req, res) => {
       );
       creados++;
     } catch (err) {
-      if (err.code === '23505') omitidos++;
+      if (err.code === '23505') {
+        const r = await pool.query('UPDATE usuarios SET activo = true WHERE email = $1 AND activo = false', [email]);
+        r.rowCount ? rehabilitados++ : omitidos++;
+      }
       else errores.push(`Fila ${i + 2}: ${err.message}`);
     }
   }
-  res.json({ creados, omitidos, errores, password_default: DEFAULT_PASSWORD });
+  res.json({ creados, omitidos, rehabilitados, errores, password_default: DEFAULT_PASSWORD });
 });
 
 // Inhabilitar / habilitar usuarios por bloques (sin borrar de la BD)

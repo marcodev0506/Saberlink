@@ -51,7 +51,7 @@ async function importar(ev) {
   error.value = ''; importMsg.value = ''; importando.value = true;
   try {
     const r = await post('/api/usuarios/importar', { archivo_base64: b64, archivo_nombre: f.name });
-    importMsg.value = `${r.creados} usuarios creados${r.omitidos ? `, ${r.omitidos} ya existían` : ''}${r.errores.length ? `, ${r.errores.length} errores` : ''} — contraseña inicial: ${r.password_default}`;
+    importMsg.value = `${r.creados} usuarios creados${r.rehabilitados ? `, ${r.rehabilitados} rehabilitados` : ''}${r.omitidos ? `, ${r.omitidos} ya existían` : ''}${r.errores.length ? `, ${r.errores.length} errores` : ''} — contraseña inicial: ${r.password_default}`;
     if (r.errores.length) importMsg.value += ` (${r.errores.join('; ')})`;
     await cargar();
   } catch (err) { error.value = err.message; }
