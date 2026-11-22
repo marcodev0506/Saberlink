@@ -55,7 +55,7 @@ async function guardar() {
   error.value = '';
   try {
     if (modal.value.mode === 'card') {
-      const payload = { nombre: f.value.cargo || f.value.nombre, tipo: modal.value.nivel || modal.value.node?.tipo, ...f.value };
+      const payload = { ...f.value, nombre: f.value.cargo || f.value.nombre, tipo: modal.value.nivel || modal.value.node?.tipo };
       if (modal.value.node) await put(`/api/unidades/${modal.value.node.id}`, payload);
       else await post('/api/unidades', payload);
     } else {
