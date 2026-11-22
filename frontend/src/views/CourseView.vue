@@ -67,7 +67,9 @@ onMounted(cargar);
       <div>
         <router-link to="/cursos" class="back">← Cursos</router-link>
         <div class="titulorow">
-          <img v-if="imagen" :src="imagen" class="portada" alt="Imagen del curso" />
+          <span class="portada" :style="imagen ? { backgroundImage: `url(${imagen})` } : {}">
+            <span v-if="!imagen" class="portada-ico">📚</span>
+          </span>
           <h1>{{ curso.titulo }}</h1>
         </div>
         <p class="sub">{{ curso.objetivo }}</p>
@@ -111,7 +113,10 @@ onMounted(cargar);
 .back { color: var(--navy); font-size: .85rem; font-weight: 600; text-decoration: none; }
 h1 { color: var(--navy); margin: .3rem 0 0; }
 .titulorow { display: flex; align-items: center; gap: .8rem; }
-.portada { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 3px solid var(--navy); }
+.portada { width: 72px; height: 72px; border-radius: 50%; border: 3px solid var(--navy); flex-shrink: 0;
+  background-size: cover; background-position: center; background-color: #dde6f0;
+  display: flex; align-items: center; justify-content: center; }
+.portada-ico { font-size: 2rem; }
 .sub { color: #6b7280; font-size: .9rem; margin: .2rem 0 0; }
 .error { color: var(--danger); }
 .estado { font-size: .7rem; font-weight: 700; padding: .25rem .7rem; border-radius: 999px; background: var(--cream); color: #4b5563; text-transform: uppercase; }
