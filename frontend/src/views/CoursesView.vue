@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { get, post, put, del } from '../api.js';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -20,6 +20,23 @@ const imgFile = ref(null);
 const editando = ref(null);        // id del curso que se edita
 const imagenes = ref({});          // curso_id -> objectURL
 const guardando = ref(false);
+const busqueda = ref('');
+const pagina = ref(1);
+const POR_PAGINA = 9;
+
+const filtrados = computed(() => {
+  const q = busqueda.value.trim().toLowerCase();
+  if (!q) return cursos.value;
+  return cursos.value.filter((c) =>
+    c.titulo.toLowerCase().includes(q) ||
+    c.objetivo?.toLowerCase().includes(q) ||
+    c.habilidades?.some((t) => t.toLowerCase().includes(q)) ||
+    c.competencias?.some((t) => t.toLowerCase().includes(q))
+  );
+});
+const paginas = computed(() => Math.max(1, Math.ceil(filtrados.value.length / POR_PAGINA)));
+const visibles = computed(() => filtrados.value.slice((pagina.value - 1) * POR_PAGINA, pagina.value * POR_PAGINA));
+watch(busqueda, () => { pagina.value = 1; });
 
 async function cargar() {
   const [c, u] = await Promise.all([
@@ -28,13 +45,18 @@ async function cargar() {
   ]);
   cursos.value = c.cursos;
   gestoresDeCurso.value = (u.usuarios || []).filter((x) => x.rol === 'gestor_curso');
+  await cargarImagenes(visibles.value);
+}
+
+async function cargarImagenes(lista) {
   const token = localStorage.getItem('token');
-  for (const cur of c.cursos) {
-    if (!cur.imagen_path) continue;
+  for (const cur of lista) {
+    if (!cur.imagen_path || imagenes.value[cur.id]) continue;
     const r = await fetch(`${API}/api/cursos/${cur.id}/imagen`, { headers: { Authorization: `Bearer ${token}` } });
     if (r.ok) imagenes.value[cur.id] = URL.createObjectURL(await r.blob());
   }
 }
+watch(visibles, cargarImagenes);
 
 function onFile(e) { pdfFile.value = e.target.files[0] || null; }
 function onImg(e) { imgFile.value = e.target.files[0] || null; }
@@ -104,6 +126,7 @@ onMounted(cargar);
         <p class="sub">El gestor de curso sube el PDF; la IA genera el guion, las evaluaciones y el audio con ElevenLabs.</p>
       </div>
       <div class="actions">
+        <input v-model="busqueda" class="buscador" placeholder="🔍 Buscar curso…" />
         <a v-if="puedeCrear" class="ghost link" href="/plantilla_unidad.docx" download>📄 Plantilla</a>
         <button v-if="puedeCrear" class="primary" @click="modal = true">+ Curso</button>
       </div>
@@ -111,7 +134,7 @@ onMounted(cargar);
     <p v-if="error" class="error">{{ error }}</p>
 
     <div class="grid">
-      <article v-for="c in cursos" :key="c.id" class="card" @click="$router.push(`/cursos/${c.id}`)">
+      <article v-for="c in visibles" :key="c.id" class="card" @click="$router.push(`/cursos/${c.id}`)">
         <div class="cover" :style="imagenes[c.id] ? { backgroundImage: `url(${imagenes[c.id]})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
           <span v-if="!imagenes[c.id]">IMAGEN REFERENCIAL DEL CURSO</span>
         </div>
@@ -131,6 +154,14 @@ onMounted(cargar);
         </div>
       </article>
       <p v-if="!cursos.length" class="empty">Aún no hay cursos. Crea uno con “+ Curso”.</p>
+    </div>
+
+    <div v-if="filtrados.length" class="pager">
+      <span class="contador">{{ filtrados.length }} cursos · página {{ pagina }} de {{ paginas }}</span>
+      <div class="btns">
+        <button :disabled="pagina === 1" @click="pagina--">← Anterior</button>
+        <button :disabled="pagina === paginas" @click="pagina++">Siguiente →</button>
+      </div>
     </div>
 
     <div v-if="modal === true" class="overlay" @click.self="modal = false">
@@ -172,7 +203,13 @@ h1 { color: var(--navy); margin: 0; }
 .primary { padding: .6rem 1.1rem; border: 0; border-radius: 9px; background: var(--navy); color: #fff; font-weight: 700; cursor: pointer; }
 .ghost { padding: .6rem 1.1rem; border: 1px solid #d4d9ea; border-radius: 9px; background: #fff; cursor: pointer; }
 .danger { background: #dc2626; }
-.actions { display: flex; gap: .5rem; }
+.actions { display: flex; gap: .5rem; align-items: center; }
+.buscador { width: 220px; padding: .5rem .8rem; border: 1.5px solid #e2e6f0; border-radius: 8px; font-family: inherit; }
+.pager { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.2rem; }
+.contador { font-size: .78rem; color: #6b7280; }
+.btns { display: flex; gap: .4rem; }
+.btns button { padding: .4rem .9rem; border: 1px solid #d4d9ea; border-radius: 8px; background: #fff; cursor: pointer; font-family: inherit; font-size: .8rem; }
+.btns button:disabled { opacity: .4; cursor: default; }
 .link { text-decoration: none; color: #4b5563; font-size: .82rem; display: inline-flex; align-items: center; }
 .error { color: var(--danger); }
 .empty { color: #9aa3b5; padding: 3rem 0; text-align: center; }
