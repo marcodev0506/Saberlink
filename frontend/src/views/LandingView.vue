@@ -27,13 +27,13 @@ if (localStorage.getItem('token')) router.replace('/inicio');
         </div>
       </div>
       <div class="hexs" aria-hidden="true">
-        <div class="hex h1 navy"></div>
-        <div class="hex h2 orange"></div>
-        <div class="hex h3 cream"></div>
+        <div class="hex h1 orange"></div>
+        <div class="hex h2 peach"></div>
+        <div class="hex h3 navy"></div>
         <div class="hex h4 cream"></div>
         <div class="hex h5 orange"></div>
         <div class="hex h6 navy"></div>
-        <div class="hex h7 navy"></div>
+        <div class="hex h7 peach"></div>
       </div>
     </section>
 
@@ -68,9 +68,8 @@ if (localStorage.getItem('token')) router.replace('/inicio');
 .entrar { background: var(--navy); color: #fff !important; padding: .55rem 1.4rem; border-radius: 8px; }
 
 .hero {
-  display: grid; grid-template-columns: 1.1fr .9fr; align-items: center; gap: 2rem;
-  padding: 4rem 4rem 5rem; background: linear-gradient(120deg, #05284B, #0b3a68);
-  border-radius: 0 0 40px 40px;
+  display: grid; grid-template-columns: 1.15fr .85fr; align-items: center;
+  padding: 4.5rem 4rem 5rem; background: var(--navy);
 }
 .kicker { color: var(--orange); font-weight: 700; font-size: .95rem; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 .8rem; }
 .hero h1 { color: #fff; font-size: clamp(2.4rem, 5vw, 4rem); line-height: 1.08; margin: 0 0 1.2rem; }
@@ -80,19 +79,22 @@ if (localStorage.getItem('token')) router.replace('/inicio');
 .cta:hover { filter: brightness(1.06); }
 .cta2 { border: 2px solid rgba(255,255,255,.7); color: #fff; padding: .85rem 1.8rem; border-radius: 999px; font-weight: 700; text-decoration: none; }
 
-.hexs { position: relative; height: 480px; }
-.hex { position: absolute; width: 150px; height: 170px; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
-.hex.navy { background: #031b33; }
+.hexs { position: relative; height: 400px; width: 396px; margin: 0 auto; }
+.hex {
+  position: absolute; width: 130px; height: 150px;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
 .hex.orange { background: var(--orange); }
-.hex.cream { background: #f4b47e; }
-.hex { filter: drop-shadow(0 10px 18px rgba(0,0,0,.35)); }
-.h1 { top: 0;   right: 170px; }
-.h2 { top: 110px; right: 40px; }
-.h3 { top: 120px; right: 290px; }
-.h4 { top: 230px; right: 160px; }
-.h5 { top: 250px; right: 30px; }
-.h6 { top: 360px; right: 150px; }
-.h7 { top: 370px; right: 300px; width: 110px; height: 125px; background: #2a5a8f; }
+.hex.peach { background: #f4b47e; }
+.hex.cream { background: var(--cream); }
+.hex.navy { background: #0b3a68; }
+.h1 { top: 0;    left: 66px; }
+.h2 { top: 0;    left: 198px; }
+.h3 { top: 114px; left: 0; }
+.h4 { top: 114px; left: 132px; }
+.h5 { top: 114px; left: 264px; }
+.h6 { top: 228px; left: 66px; }
+.h7 { top: 228px; left: 198px; }
 
 .beneficios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; padding: 3rem 4rem; background: var(--navy); }
 .b { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 1.4rem; }
