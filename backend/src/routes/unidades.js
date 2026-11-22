@@ -66,7 +66,10 @@ Si la descripción menciona cantidades (ej "3 analistas"), genera esa cantidad d
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, prompt, stream: false, format: 'json' }),
   });
-  if (!r.ok) return res.status(502).json({ error: `Ollama ${r.status}` });
+  if (!r.ok) {
+    const detalle = await r.text();
+    return res.status(502).json({ error: `Ollama ${r.status}: ${detalle.slice(0, 200)} (url=${url}, model=${model})` });
+  }
   const { response } = await r.json();
   let tree;
   try { tree = JSON.parse(response); } catch { return res.status(502).json({ error: 'La IA no devolvió JSON válido' }); }
