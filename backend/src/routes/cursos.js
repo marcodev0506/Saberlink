@@ -125,7 +125,7 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   if (!puedeEditar(req.user.rol)) return res.status(403).json({ error: 'Solo RRHH o Gestor de curso' });
-  const { titulo, objetivo, facilitador_id, competencias, habilidades, estado, imagen_base64, imagen_nombre } = req.body ?? {};
+  const { titulo, objetivo, facilitador_id, competencias, habilidades, estado, imagen_base64, imagen_nombre, archivo_base64, archivo_nombre } = req.body ?? {};
   const { rows: [c] } = await pool.query(
     `UPDATE cursos SET
        titulo = COALESCE($3, titulo),
@@ -140,6 +140,18 @@ router.put('/:id', async (req, res) => {
      habilidades != null ? JSON.stringify(habilidades) : null]
   );
   if (!c) return res.status(404).json({ error: 'Curso no encontrado' });
+  if (archivo_base64) {
+    const ext = (archivo_nombre || 'documento.pdf').split('.').pop().toLowerCase();
+    if (!['pdf', 'docx'].includes(ext)) return res.status(400).json({ error: 'Solo PDF o DOCX' });
+    const dir = `${process.env.STORAGE_DIR}/docs`;
+    await mkdir(dir, { recursive: true });
+    const path = `${dir}/${c.id}.${ext}`;
+    const clean = archivo_base64.replace(/^data:.*;base64,/, '');
+    await writeFile(path, Buffer.from(clean, 'base64'));
+    await pool.query('DELETE FROM lecciones WHERE curso_id = $1', [c.id]);
+    await pool.query("UPDATE cursos SET pdf_path = $1, estado = 'procesando' WHERE id = $2", [path, c.id]);
+    await publish('ia.jobs', { type: 'guion', payload: { curso_id: c.id, pdf_path: path, empresa_id: req.user.empresa_id } });
+  }
   if (imagen_base64) {
     const ext = (imagen_nombre || 'imagen.png').split('.').pop().toLowerCase();
     const dir = `${process.env.STORAGE_DIR}/imagenes`;
