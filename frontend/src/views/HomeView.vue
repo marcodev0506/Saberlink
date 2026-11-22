@@ -21,7 +21,7 @@ onMounted(async () => {
 
       <div class="bento">
         <div class="left">
-          <img class="avatar" src="/avatar.jpg" alt="Saberlink" />
+          <img class="avatar" src="/home.jpg" alt="Saberlink" />
         </div>
 
         <div class="bloques">
