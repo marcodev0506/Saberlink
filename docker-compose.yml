@@ -63,15 +63,16 @@ services:
     build: ./workers/ia-worker
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-saberlink}:${RABBITMQ_PASS:-saberlink}@rabbitmq:5672
-      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
     depends_on:
       rabbitmq:
         condition: service_healthy
-      ollama:
-        condition: service_started
 
+  # Opcional: corre Ollama en Docker solo si no lo tienes instalado localmente.
+  # docker compose --profile ollama up -d
   ollama:
+    profiles: ["ollama"]
     image: ollama/ollama:latest
     ports:
       - "11434:11434"

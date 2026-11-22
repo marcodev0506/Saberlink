@@ -20,4 +20,4 @@ docker compose up --build
 - API: http://localhost:3000 (`/health`, `POST /api/jobs/guion`, `POST /api/jobs/voz`)
 - RabbitMQ UI: http://localhost:15672 (saberlink/saberlink)
 
-Ollama corre fuera del compose por defecto; instálalo localmente o descomenta el servicio `ollama` en `docker-compose.yml`.
+Ollama corre **fuera** del compose por defecto: instálalo localmente ([ollama.com/download](https://ollama.com/download)) y el `ia-worker` lo alcanza vía `host.docker.internal:11434`. Si prefieres correrlo en Docker: `docker compose --profile ollama up -d` y pon `OLLAMA_URL=http://ollama:11434` en `.env`.
