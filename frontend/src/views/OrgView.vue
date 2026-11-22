@@ -15,6 +15,19 @@ const colapsados = ref(new Set());
 const f = ref({ cargo: '', nombre_apellido: '', ci: '', correo: '' });
 const p = ref({ descripcion: '', competencias: [], habilidades: [] });
 const tipoDraft = ref('unidad');
+const chatTxt = ref('');
+const chatLoading = ref(false);
+const chatMsg = ref('');
+async function enviarChat() {
+  if (!chatTxt.value.trim()) return;
+  chatLoading.value = true; chatMsg.value = '';
+  try {
+    await post('/api/unidades/chat', { texto: chatTxt.value });
+    chatTxt.value = ''; chatMsg.value = 'Estructura creada ✔';
+    await cargar();
+  } catch (e) { chatMsg.value = e.message; }
+  chatLoading.value = false;
+}
 
 function fmtCi(e) { f.value.ci = 'V-' + e.target.value.replace(/[^0-9]/g, ''); }
 
@@ -111,6 +124,12 @@ onMounted(cargar);
       </div>
       <button v-if="esRrhh" class="primary" @click="abrirCard()">Agregar</button>
     </header>
+    <section v-if="esRrhh" class="chat">
+      <textarea v-model="chatTxt" rows="2" @keydown.ctrl.enter.prevent="enviarChat"
+        placeholder="Describe la estructura en lenguaje natural, ej: una gerencia de RRHH con 5 líderes y cada líder 3 analistas" />
+      <button class="primary" :disabled="chatLoading" @click="enviarChat">{{ chatLoading ? 'Generando…' : '➤ Crear' }}</button>
+      <p v-if="chatMsg" class="chatmsg">{{ chatMsg }}</p>
+    </section>
     <p v-if="error" class="error">{{ error }}</p>
 
     <ul class="tree">
@@ -168,6 +187,9 @@ h1 { color: var(--navy); margin: 0; }
 .error { color: var(--danger); }
 .empty { color: #9aa3b5; font-size: .85rem; padding: .6rem 0; }
 .big { text-align: center; padding: 3rem 0; }
+.chat { display: flex; gap: .5rem; align-items: flex-start; margin-top: 1.2rem; background: #fff; border-radius: 14px; padding: .9rem; box-shadow: 0 4px 16px rgba(15,30,80,.1); }
+.chat textarea { flex: 1; border: 1.5px solid #e2e6f0; border-radius: 8px; padding: .55rem; font-family: inherit; resize: vertical; }
+.chatmsg { font-size: .8rem; color: var(--navy); margin: 0; align-self: center; }
 .tree { list-style: none; padding: 0; margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: center; }
 .tree > li { display: flex; flex-direction: column; align-items: center; }
 
