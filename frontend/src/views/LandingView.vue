@@ -26,15 +26,14 @@ if (localStorage.getItem('token')) router.replace('/inicio');
           <router-link to="/registro" class="cta2">Registrar empresa</router-link>
         </div>
       </div>
-      <img class="avatar" src="/avatar.jpg" alt="Avatar Saberlink" />
       <div class="hexs" aria-hidden="true">
         <div class="hex h1 orange"></div>
         <div class="hex h2 peach"></div>
         <div class="hex h3 navy"></div>
-        <div class="hex h4 cream"></div>
         <div class="hex h5 orange"></div>
         <div class="hex h6 navy"></div>
         <div class="hex h7 peach"></div>
+        <img class="avatar" src="/avatar.jpg" alt="Avatar Saberlink" />
       </div>
     </section>
 
@@ -69,7 +68,7 @@ if (localStorage.getItem('token')) router.replace('/inicio');
 .entrar { background: var(--navy); color: #fff !important; padding: .55rem 1.4rem; border-radius: 8px; }
 
 .hero {
-  display: grid; grid-template-columns: 1.1fr 220px .8fr; align-items: center;
+  display: grid; grid-template-columns: 1.15fr .85fr; align-items: center;
   padding: 4.5rem 4rem 5rem; background: var(--navy);
 }
 .kicker { color: var(--orange); font-weight: 700; font-size: .95rem; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 .8rem; }
@@ -97,9 +96,9 @@ if (localStorage.getItem('token')) router.replace('/inicio');
 .h6 { top: 228px; left: 66px; }
 .h7 { top: 228px; left: 198px; }
 .avatar {
-  width: 190px; height: 190px; border-radius: 50%; object-fit: cover;
-  border: 5px solid var(--cream); box-shadow: 0 12px 30px rgba(0,0,0,.35);
-  justify-self: center; position: relative; z-index: 2;
+  position: absolute; top: 114px; left: 132px; width: 130px; height: 150px;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  object-fit: cover;
 }
 
 .beneficios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; padding: 3rem 4rem; background: var(--navy); }
