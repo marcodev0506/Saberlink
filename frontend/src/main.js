@@ -15,11 +15,12 @@ import EvaluacionesView from './views/EvaluacionesView.vue';
 import CambiarPasswordView from './views/CambiarPasswordView.vue';
 import VerificarView from './views/VerificarView.vue';
 import CertificadosView from './views/CertificadosView.vue';
+import LandingView from './views/LandingView.vue';
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/login' },
+    { path: '/', component: LandingView },
     { path: '/login', component: LoginView },
     { path: '/registro', component: RegisterView },
     { path: '/inicio', component: HomeView, meta: { auth: true } },
