@@ -51,7 +51,7 @@ router.post('/', requireRrhh, async (req, res) => {
 });
 
 router.put('/:id', requireRrhh, async (req, res) => {
-  const { nombre, tipo, descripcion, competencias, habilidades,
+  const { nombre, tipo, parent_id, descripcion, competencias, habilidades,
           cargo, nombre_apellido, ci, correo, orden, metadata } = req.body ?? {};
   const { rows: [u] } = await pool.query(
     `UPDATE unidades SET
@@ -65,7 +65,8 @@ router.put('/:id', requireRrhh, async (req, res) => {
        ci          = COALESCE($10, ci),
        correo      = COALESCE($11, correo),
        orden       = COALESCE($12, orden),
-       metadata    = COALESCE($13, metadata)
+       metadata    = COALESCE($13, metadata),
+       parent_id   = COALESCE($14, parent_id)
      WHERE id = $1 AND empresa_id = $2
      RETURNING id, parent_id, nombre, tipo, descripcion, competencias, habilidades,
                cargo, nombre_apellido, ci, correo, orden, metadata`,
@@ -73,7 +74,7 @@ router.put('/:id', requireRrhh, async (req, res) => {
      descripcion ?? null, competencias != null ? JSON.stringify(competencias) : null,
      habilidades != null ? JSON.stringify(habilidades) : null,
      cargo ?? null, nombre_apellido ?? null, ci ?? null, correo ?? null,
-     orden ?? null, metadata != null ? JSON.stringify(metadata) : null]
+     orden ?? null, metadata != null ? JSON.stringify(metadata) : null, parent_id ?? null]
   );
   if (!u) return res.status(404).json({ error: 'Unidad no encontrada' });
   res.json({ unidad: u });

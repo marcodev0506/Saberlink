@@ -1,19 +1,20 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { get, post, put, del } from '../api.js';
 import AppLayout from '../components/AppLayout.vue';
+import OrgCard from '../components/OrgCard.vue';
 
-const flat = ref([]);           // lista plana de unidades
+const arbol = ref([]);
 const error = ref('');
-const modal = ref(null);        // { mode: 'card'|'perfil', nivel?, node? }
+const modal = ref(null);        // { mode: 'card'|'perfil'|'confirm', padre?, node? }
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 const esRrhh = user.rol === 'rrhh';
+const colapsados = ref(new Set());
 
-// formulario tarjeta (puesto/persona)
-const f = ref({ nombre: '', cargo: '', nombre_apellido: '', ci: '', correo: '' });
-// formulario perfil (botón +)
+const f = ref({ cargo: '', nombre_apellido: '', ci: '', correo: '' });
 const p = ref({ descripcion: '', competencias: [], habilidades: [] });
 const tagDraft = ref({ competencias: '', habilidades: '' });
+const tipoDraft = ref('unidad');
 
 function addTag(campo) {
   const t = tagDraft.value[campo].trim();
@@ -21,28 +22,25 @@ function addTag(campo) {
   tagDraft.value[campo] = '';
 }
 function delTag(campo, i) { p.value[campo].splice(i, 1); }
-
-function fmtCi(e) {
-  f.value.ci = 'V-' + e.target.value.replace(/[^0-9]/g, '');
-}
-const niveles = computed(() => [...new Set(flat.value.map((u) => u.tipo))]);
-const porNivel = (nivel) => flat.value.filter((u) => u.tipo === nivel);
-
-function flatten(nodos, acc = []) {
-  for (const n of nodos) { acc.push(n); flatten(n.hijos ?? [], acc); }
-  return acc;
-}
+function fmtCi(e) { f.value.ci = 'V-' + e.target.value.replace(/[^0-9]/g, ''); }
 
 async function cargar() {
   const data = await get('/api/unidades');
-  flat.value = flatten(data.unidades);
+  arbol.value = data.unidades;
 }
 
-function abrirCard(nivel, node = null) {
-  modal.value = { mode: 'card', nivel, node };
+function toggle(id) {
+  const s = new Set(colapsados.value);
+  s.has(id) ? s.delete(id) : s.add(id);
+  colapsados.value = s;
+}
+
+function abrirCard(padre = null, node = null) {
+  modal.value = { mode: 'card', padre, node };
   f.value = node
-    ? { nombre: node.nombre, cargo: node.cargo, nombre_apellido: node.nombre_apellido, ci: node.ci, correo: node.correo }
-    : { nombre: '', cargo: '', nombre_apellido: '', ci: '', correo: '' };
+    ? { cargo: node.cargo || node.nombre, nombre_apellido: node.nombre_apellido, ci: node.ci, correo: node.correo }
+    : { cargo: '', nombre_apellido: '', ci: '', correo: '' };
+  tipoDraft.value = node?.tipo || 'unidad';
 }
 
 function abrirPerfil(node) {
@@ -59,9 +57,19 @@ async function guardar() {
   error.value = '';
   try {
     if (modal.value.mode === 'card') {
-      const payload = { ...f.value, nombre: f.value.cargo || f.value.nombre, tipo: modal.value.nivel || modal.value.node?.tipo };
-      if (modal.value.node) await put(`/api/unidades/${modal.value.node.id}`, payload);
-      else await post('/api/unidades', payload);
+      const payload = {
+        nombre: f.value.cargo.trim(),
+        cargo: f.value.cargo.trim(),
+        tipo: tipoDraft.value,
+        nombre_apellido: f.value.nombre_apellido,
+        ci: f.value.ci,
+        correo: f.value.correo,
+      };
+      if (modal.value.node) {
+        await put(`/api/unidades/${modal.value.node.id}`, payload);
+      } else {
+        await post('/api/unidades', { ...payload, parent_id: modal.value.padre?.id ?? null });
+      }
     } else {
       await put(`/api/unidades/${modal.value.node.id}`, {
         descripcion: p.value.descripcion,
@@ -71,63 +79,32 @@ async function guardar() {
     }
     modal.value = null;
     await cargar();
-  } catch (err) {
-    error.value = err.message;
-  }
+  } catch (err) { error.value = err.message; }
 }
 
-function borrar(node) {
-  modal.value = { mode: 'confirm', node };
-}
+function borrar(node) { modal.value = { mode: 'confirm', node }; }
 
 async function confirmarBorrar() {
   try {
     await del(`/api/unidades/${modal.value.node.id}`);
     modal.value = null;
     await cargar();
-  } catch (err) {
-    error.value = err.message;
-  }
+  } catch (err) { error.value = err.message; }
 }
 
-// drag & drop entre niveles
+// drag & drop: soltar una tarjeta sobre otra la anida como hija
 const dragId = ref(null);
-function onDrop(nivel) {
-  const node = flat.value.find((u) => u.id === dragId.value);
+function onDrop(target) {
+  const id = dragId.value;
   dragId.value = null;
-  if (!node || node.tipo === nivel) return;
-  put(`/api/unidades/${node.id}`, { tipo: nivel }).then(cargar).catch((e) => (error.value = e.message));
+  if (!id || id === target.id) return;
+  const esDesc = (n) => n.id === id || (n.hijos ?? []).some(esDesc);
+  if (esDesc(target)) return;
+  put(`/api/unidades/${id}`, { parent_id: target.id })
+    .then(cargar)
+    .catch((e) => (error.value = e.message));
 }
-
-const nivelDraft = ref('');
-
-function renombrarNivel(nivel) {
-  nivelDraft.value = nivel;
-  modal.value = { mode: 'nivel', nivel };
-}
-
-function nuevoNivel() {
-  nivelDraft.value = '';
-  modal.value = { mode: 'nivel', nivel: null };
-}
-
-async function guardarNivel() {
-  const v = nivelDraft.value.trim();
-  if (!v) return;
-  try {
-    const m = modal.value;
-    if (m.nivel) {
-      if (v === m.nivel) { modal.value = null; return; }
-      await Promise.all(porNivel(m.nivel).map((u) => put(`/api/unidades/${u.id}`, { tipo: v.toLowerCase() })));
-    } else {
-      await post('/api/unidades', { nombre: v, tipo: v.toLowerCase() });
-    }
-    modal.value = null;
-    await cargar();
-  } catch (err) {
-    error.value = err.message;
-  }
-}
+function onDragstart(id) { dragId.value = id; }
 
 onMounted(cargar);
 </script>
@@ -137,65 +114,29 @@ onMounted(cargar);
     <header class="top">
       <div>
         <h1>Estructura organizacional</h1>
-        <p class="sub">Arrastra tarjetas entre niveles. El botón + de cada tarjeta define la descripción del puesto, competencias y habilidades.</p>
+        <p class="sub">Arrastra una tarjeta sobre otra para anidarla. ⊕ agrega una sub-unidad y + define descripción, competencias y habilidades.</p>
       </div>
-      <button v-if="esRrhh" class="primary" @click="nuevoNivel">+ Nivel</button>
+      <button v-if="esRrhh" class="primary" @click="abrirCard()">+ Unidad</button>
     </header>
     <p v-if="error" class="error">{{ error }}</p>
 
-    <section v-for="nivel in niveles" :key="nivel" class="board-row"
-             @dragover.prevent @drop="onDrop(nivel)">
-      <div class="row-head">
-        <h2>{{ nivel }}
-          <button v-if="esRrhh" class="edit-lvl" title="Renombrar nivel" @click="renombrarNivel(nivel)">✎</button>
-        </h2>
-        <button v-if="esRrhh" class="add" @click="abrirCard(nivel)">Agregar</button>
-      </div>
-      <div class="cards">
-        <article v-for="u in porNivel(nivel)" :key="u.id" class="post"
-                 :draggable="esRrhh" @dragstart="dragId = u.id">
-          <header>
-            <strong>{{ u.cargo || u.nombre }}</strong>
-            <button v-if="esRrhh" class="plus" title="Descripción, competencias y habilidades" @click="abrirPerfil(u)">+</button>
-          </header>
-          <p v-if="u.nombre_apellido"><b>Nombre:</b> {{ u.nombre_apellido }}</p>
-          <p v-if="u.ci"><b>CI:</b> {{ u.ci }}</p>
-          <p v-if="u.correo"><b>Correo:</b> {{ u.correo }}</p>
-          <p v-if="u.descripcion" class="desc"><b>Descripción:</b> {{ u.descripcion }}</p>
-          <div class="group" v-if="u.competencias?.length">
-            <b class="lbl comp-l">Competencias</b>
-            <div class="tags"><em v-for="c in u.competencias" :key="`c${c}`" class="tag comp">{{ c }}</em></div>
-          </div>
-          <div class="group" v-if="u.habilidades?.length">
-            <b class="lbl hab-l">Habilidades</b>
-            <div class="tags"><em v-for="h in u.habilidades" :key="`h${h}`" class="tag hab">{{ h }}</em></div>
-          </div>
-          <footer v-if="esRrhh">
-            <button @click="abrirCard(nivel, u)">✎</button>
-            <button @click="borrar(u)">🗑</button>
-          </footer>
-        </article>
-        <p v-if="!porNivel(nivel).length" class="empty">Arrastra tarjetas aquí o usa “Agregar”.</p>
-      </div>
-    </section>
-    <p v-if="!niveles.length" class="empty big">Aún no hay estructura. Crea un nivel con “+ Nivel”.</p>
+    <ul class="tree">
+      <OrgCard v-for="u in arbol" :key="u.id" :u="u" :es-rrhh="esRrhh" :colapsados="colapsados"
+               @toggle="toggle" @drop="onDrop" @perfil="abrirPerfil"
+               @editar="(u) => abrirCard(null, u)" @hijo="(u) => abrirCard(u)" @borrar="borrar"
+               @dragstart="onDragstart" />
+    </ul>
+    <p v-if="!arbol.length" class="empty big">Aún no hay estructura. Crea una unidad con “+ Unidad”.</p>
 
     <div v-if="modal" class="overlay" @click.self="modal = null">
       <div class="dialog">
         <template v-if="modal.mode === 'card'">
-          <h2>{{ modal.node ? 'Editar puesto' : `Nuevo puesto en "${modal.nivel}"` }}</h2>
-          <label>Cargo <input v-model="f.cargo" placeholder="Gerente de Operaciones" /></label>
+          <h2>{{ modal.node ? 'Editar puesto' : modal.padre ? `Sub-unidad de "${modal.padre.cargo || modal.padre.nombre}"` : 'Nueva unidad' }}</h2>
+          <label>Tipo <input v-model="tipoDraft" placeholder="gerencia, unidad, analista…" /></label>
+          <label>Cargo / Nombre <input v-model="f.cargo" placeholder="Gerente de Operaciones" /></label>
           <label>Nombre y Apellido <input v-model="f.nombre_apellido" /></label>
           <label>CI <input :value="f.ci" @input="fmtCi" placeholder="V-12345678" inputmode="numeric" /></label>
           <label>Correo <input v-model="f.correo" type="email" /></label>
-        </template>
-        <template v-else-if="modal.mode === 'nivel'">
-          <h2>{{ modal.nivel ? `Renombrar "${modal.nivel}"` : 'Nuevo nivel' }}</h2>
-          <label>Nombre del nivel <input v-model="nivelDraft" placeholder="Gerentes, Analistas, Supervisores" @keydown.enter="guardarNivel" /></label>
-          <div class="dialog-actions">
-            <button class="ghost" @click="modal = null">Cancelar</button>
-            <button class="primary" @click="guardarNivel">Guardar</button>
-          </div>
         </template>
         <template v-else-if="modal.mode === 'confirm'">
           <h2>Eliminar "{{ modal.node.cargo || modal.node.nombre }}"</h2>
@@ -240,36 +181,7 @@ h1 { color: var(--navy); margin: 0; }
 .error { color: var(--danger); }
 .empty { color: #9aa3b5; font-size: .85rem; padding: .6rem 0; }
 .big { text-align: center; padding: 3rem 0; }
-
-.board-row { margin-top: 1.5rem; }
-.row-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #c9d2e8; padding-bottom: .4rem; }
-.row-head h2 { margin: 0; font-size: 1rem; color: var(--navy); text-transform: capitalize; }
-.edit-lvl { border: 0; background: none; color: #9aa3b5; cursor: pointer; font-size: .85rem; }
-.edit-lvl:hover { color: var(--navy); }
-.add { padding: .4rem 1.2rem; border: 0; border-radius: 999px; background: var(--navy); color: #fff; font-weight: 700; font-size: .85rem; cursor: pointer; }
-
-.cards { display: flex; flex-wrap: wrap; gap: .9rem; padding: .9rem 0; }
-.post {
-  background: #fff; border-radius: 14px; padding: 1rem 1.1rem; min-width: 200px; max-width: 260px;
-  box-shadow: 0 4px 16px rgba(15,30,80,.1); cursor: grab; display: flex; flex-direction: column; gap: .25rem;
-}
-.post:active { cursor: grabbing; }
-.post header { display: flex; justify-content: space-between; align-items: center; }
-.post strong { color: var(--navy); font-size: .95rem; }
-.plus { border: 0; background: var(--navy); color: #fff; width: 26px; height: 26px; border-radius: 50%; font-size: 1rem; cursor: pointer; line-height: 1; }
-.post p { margin: 0; font-size: .8rem; color: #4b5563; }
-.post p b { color: #374151; }
-.post .desc { color: #6b7280; font-size: .78rem; }
-.group { margin-top: .35rem; }
-.lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .03em; }
-.comp-l { color: var(--orange); }
-.hab-l { color: var(--navy); }
-.tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .2rem; }
-.tag { font-style: normal; font-size: .68rem; padding: .1rem .5rem; border-radius: 999px; font-weight: 600; }
-.comp { background: #fdeee3; color: var(--orange); }
-.hab { background: #dde6f0; color: var(--navy); }
-.post footer { display: flex; gap: .3rem; margin-top: .5rem; }
-.post footer button { border: 0; background: var(--cream); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
+.tree { list-style: none; padding: 0; margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; }
 
 .overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .dialog { background: #fff; border-radius: 14px; padding: 1.75rem; width: 360px; display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; }
