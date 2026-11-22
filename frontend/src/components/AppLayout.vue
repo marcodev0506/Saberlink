@@ -104,8 +104,8 @@ function logout() {
 .name { color: var(--navy); font-weight: 600; }
 .logout { border: 1px solid #d4d9ea; background: #fff; border-radius: 8px; padding: .35rem .8rem; cursor: pointer; font-size: .82rem; color: #4b5563; }
 .logout:hover { background: var(--cream); }
-.crumb { max-width: 860px; margin: 1.25rem auto 0; padding: 0 1rem; }
+.crumb { max-width: 1240px; margin: 1.25rem auto 0; padding: 0 1rem; }
 .back { color: var(--navy); font-size: .85rem; font-weight: 600; text-decoration: none; }
 .back:hover { text-decoration: underline; }
-.content { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+.content { max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
 </style>

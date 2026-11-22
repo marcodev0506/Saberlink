@@ -215,10 +215,10 @@ h1 { color: var(--navy); margin: 0; }
 .empty { color: #9aa3b5; padding: 3rem 0; text-align: center; }
 .confirmtxt { color: #6b7280; font-size: .85rem; margin: 0; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1.1rem; margin-top: 1.5rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 1.3rem; margin-top: 1.5rem; }
 .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(15,30,80,.1); }
 .cover {
-  height: 110px; display: flex; align-items: center; justify-content: center;
+  height: 210px; display: flex; align-items: center; justify-content: center;
   font-size: .65rem; font-weight: 700; letter-spacing: .05em; color: #4b5563;
   background:
     radial-gradient(ellipse at 70% 120%, #a3c14a 0 30%, transparent 30%),
@@ -226,15 +226,15 @@ h1 { color: var(--navy); margin: 0; }
     radial-gradient(ellipse at 50% 140%, #c8e08a 0 45%, transparent 45%),
     linear-gradient(#bfe0f5, #e8f4fc);
 }
-.body { padding: .9rem; position: relative; }
-.body h3 { margin: 0; font-size: .8rem; color: var(--navy); }
-.body p { margin: .25rem 0; font-size: .72rem; color: #4b5563; text-transform: uppercase; }
+.body { padding: 1.1rem; position: relative; }
+.body h3 { margin: 0; font-size: 1rem; color: var(--navy); }
+.body p { margin: .3rem 0; font-size: .82rem; color: #4b5563; text-transform: uppercase; }
 .fac { font-weight: 700; }
 .estado { position: absolute; top: .9rem; right: .9rem; font-size: .65rem; font-weight: 700; padding: .15rem .55rem; border-radius: 999px; background: var(--cream); color: #4b5563; text-transform: uppercase; }
 .estado.listo, .estado.publicado { background: #dde6f0; color: var(--navy); }
 .estado.procesando { background: #fdeee3; color: var(--orange); }
 .tags { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .35rem; }
-.tag { font-style: normal; font-size: .62rem; padding: .1rem .45rem; border-radius: 999px; font-weight: 700; }
+.tag { font-style: normal; font-size: .7rem; padding: .1rem .45rem; border-radius: 999px; font-weight: 700; }
 .comp { background: #fdeee3; color: var(--orange); }
 .hab { background: #dde6f0; color: var(--navy); }
 .del { margin-top: .4rem; border: 0; background: var(--cream); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; font-size: .8rem; }
