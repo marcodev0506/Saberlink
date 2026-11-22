@@ -64,14 +64,19 @@ services:
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-saberlink}:${RABBITMQ_PASS:-saberlink}@rabbitmq:5672
       OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
     depends_on:
       rabbitmq:
         condition: service_healthy
-    # Uncomment to run Ollama in-cluster, or point OLLAMA_URL at a local install.
-    # ollama:
-    #   image: ollama/ollama:latest
-    #   ports: ["11434:11434"]
+      ollama:
+        condition: service_started
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
 
   voice-worker:
     build: ./workers/voice-worker
@@ -87,3 +92,4 @@ services:
 
 volumes:
   postgres_data:
+  ollama_data:

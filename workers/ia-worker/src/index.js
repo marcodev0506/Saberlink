@@ -2,7 +2,7 @@ import amqp from 'amqplib';
 
 const QUEUE = 'ia.jobs';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://ollama:11434';
-const MODEL = process.env.OLLAMA_MODEL || 'llama3.1';
+const MODEL = process.env.OLLAMA_MODEL || 'llama3.2:1b';
 
 async function callOllama(prompt) {
   const res = await fetch(`${OLLAMA_URL}/api/generate`, {
