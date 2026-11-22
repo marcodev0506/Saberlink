@@ -132,13 +132,15 @@ onMounted(cargar);
     </section>
     <p v-if="error" class="error">{{ error }}</p>
 
-    <ul class="tree">
-      <OrgCard v-for="u in arbol" :key="u.id" :u="u" :es-rrhh="esRrhh" :colapsados="colapsados"
-               @toggle="toggle" @drop="onDrop" @perfil="abrirPerfil"
-               @editar="(u) => abrirCard(null, u)" @hijo="(u) => abrirCard(u)" @borrar="borrar"
-               @dragstart="onDragstart" />
-    </ul>
-    <p v-if="!arbol.length" class="empty big">Aún no hay estructura. Crea una unidad con “+ Unidad”.</p>
+    <div class="canvas">
+      <ul class="tree">
+        <OrgCard v-for="u in arbol" :key="u.id" :u="u" :es-rrhh="esRrhh" :colapsados="colapsados"
+                 @toggle="toggle" @drop="onDrop" @perfil="abrirPerfil"
+                 @editar="(u) => abrirCard(null, u)" @hijo="(u) => abrirCard(u)" @borrar="borrar"
+                 @dragstart="onDragstart" />
+      </ul>
+      <p v-if="!arbol.length" class="empty big">Aún no hay estructura. Crea una unidad con “+ Unidad”.</p>
+    </div>
 
     <div v-if="modal" class="overlay" @click.self="modal = null">
       <div class="dialog">
@@ -190,7 +192,12 @@ h1 { color: var(--navy); margin: 0; }
 .chat { display: flex; gap: .5rem; align-items: flex-start; margin-top: 1.2rem; background: #fff; border-radius: 14px; padding: .9rem; box-shadow: 0 4px 16px rgba(15,30,80,.1); }
 .chat textarea { flex: 1; border: 1.5px solid #e2e6f0; border-radius: 8px; padding: .55rem; font-family: inherit; resize: vertical; }
 .chatmsg { font-size: .8rem; color: var(--navy); margin: 0; align-self: center; }
-.tree { list-style: none; padding: 0; margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: center; }
+.canvas {
+  margin-top: 1.5rem; border-radius: 16px; padding: 2rem;
+  background: url('/pizarra.jpg') repeat; background-size: 560px;
+  border: 1px solid #e2e6f0; box-shadow: inset 0 2px 12px rgba(15,30,80,.06);
+}
+.tree { list-style: none; margin-top: 0; padding: 0; margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: center; }
 .tree > li { display: flex; flex-direction: column; align-items: center; }
 
 .overlay { position: fixed; inset: 0; background: rgba(10,20,50,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
